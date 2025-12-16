@@ -1,0 +1,10 @@
+https://maskray.me/blog/2025-03-09-compiling-c++-with-clang-api
+https://blog.memzero.de/llvm-orc-jit/
+cmake -S. -Bbuild -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=/home/spica/GitRepo/llvm-project/build/bin/clang++ -DCMAKE_PREFIX_PATH="/home/spica/GitRepo/llvm-project/"
+ninja -C out/debug
+
+
+
+Solution:
+We pass function length as a parameter to the JIT.
+JIT init an APInt array with length, so every temporary variable can use it.
