@@ -93,7 +93,7 @@ std::pair<bool, std::string> compile(const std::string& fileName,
         }
 
     }else{
-        args.push_back("tmp.cpp");
+        args.push_back("eval-engine-fake-input.cpp");
         for(const auto& s:compileArgs){
             args.push_back(s.c_str());
         }
@@ -109,13 +109,13 @@ std::pair<bool, std::string> compile(const std::string& fileName,
     std::unique_ptr<clang::driver::Compilation> comp(d.BuildCompilation(args));
     const auto &jobs = comp->getJobs();
 
-    llvm:errs()<<jobs.size()<<"\n";
+    /*llvm:errs()<<jobs.size()<<"\n";
     for(auto it=jobs.begin();it!=jobs.end();++it){
         for(const auto& s:it->getArguments()){
             llvm::errs()<<s<<" ";
         }
         llvm::errs()<<"\n=====\n";
-    }
+    }*/
     if (jobs.size() != 1)
         return {false, "only support one job"};
     const llvm::opt::ArgStringList &ccArgs = jobs.begin()->getArguments();
@@ -139,19 +139,16 @@ std::pair<bool, std::string> compile(const std::string& fileName,
         new clang::TextDiagnosticPrinter(llvm::errs(), ci->getDiagnostics().getDiagnosticOptions())
         );
     if (!fromFile) {
-        //ci->getPreprocessorOpts().addRemappedFile(
-        //    "tmp.cpp", llvm::MemoryBuffer::getMemBuffer(source).release());
-auto buffer = llvm::MemoryBuffer::getMemBuffer(source, "<jit-input>");
-        ci->getSourceManager().setMainFileID(
-    ci->getSourceManager().createFileID(std::move(buffer))
-);
-auto &FEOpts = ci->getInvocation().getFrontendOpts();
-FEOpts.Inputs.clear();
-FEOpts.Inputs.emplace_back(
-    ci->getSourceManager().getBufferOrFake(ci->getSourceManager().getMainFileID()),
-    clang::InputKind(clang::Language::CXX)
-);
-
+        auto buffer = llvm::MemoryBuffer::getMemBuffer(source, "<jit-input>");
+            ci->getSourceManager().setMainFileID(
+                ci->getSourceManager().createFileID(std::move(buffer))
+        );
+        auto &FEOpts = ci->getInvocation().getFrontendOpts();
+        FEOpts.Inputs.clear();
+        FEOpts.Inputs.emplace_back(
+            ci->getSourceManager().getBufferOrFake(ci->getSourceManager().getMainFileID()),
+            clang::InputKind(clang::Language::CXX)
+        );
     }
     ci->getCodeGenOpts().DisableFree = false;
     ci->getFrontendOpts().DisableFree = false;
