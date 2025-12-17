@@ -79,6 +79,128 @@ namespace {
     };
 }
 
+
+
+std::unique_ptr<llvm::orc::LLJIT> createJITModule(const std::string& fileName,
+                                     const std::vector<std::string>& compileArgs,
+                                     const std::string& source){
+
+    auto fs = llvm::vfs::getRealFileSystem();
+    DiagsSaver dc;
+    std::vector<const char *> args{"clang"};
+    bool fromFile=!fileName.empty();
+    if(fromFile){
+        args.push_back(fileName.c_str());
+    }else{
+        args.push_back("eval-engine-fake-input.cpp");
+    }
+    for(const auto& s:compileArgs){
+        args.push_back(s.c_str());
+    }
+
+
+    auto diagsOptions = DiagnosticOptions();
+    auto diags = CompilerInstance::createDiagnostics(
+            *fs,
+            diagsOptions, &dc, false);
+    clang::driver::Driver d(args[0], kTargetTriple, *diags, "cc", fs);
+    d.setCheckInputsExist(false);
+    std::unique_ptr<clang::driver::Compilation> comp(d.BuildCompilation(args));
+    const auto &jobs = comp->getJobs();
+
+    /*llvm:errs()<<jobs.size()<<"\n";
+    for(auto it=jobs.begin();it!=jobs.end();++it){
+        for(const auto& s:it->getArguments()){
+            llvm::errs()<<s<<" ";
+        }
+        llvm::errs()<<"\n=====\n";
+    }*/
+    if (jobs.size() != 1)
+        return nullptr;
+    const llvm::opt::ArgStringList &ccArgs = jobs.begin()->getArguments();
+    auto ci = std::make_unique<CompilerInstance>();
+
+    CompilerInvocation::CreateFromArgs(ci->getInvocation(), ccArgs, *diags);
+
+    HeaderSearchOptions &HSO = ci->getInvocation().getHeaderSearchOpts();
+    for(const auto& path:INCLUDE_PATHS){
+        HSO.AddPath(path,
+                    clang::frontend::Angled,
+                    false, false);
+    }
+
+    ci->createDiagnostics(*fs, &dc, false);
+    ci->getDiagnostics().getDiagnosticOptions().ShowCarets = false;
+    ci->createFileManager(fs);
+    ci->createSourceManager(ci->getFileManager());
+
+    ci->getDiagnostics().setClient(
+        new clang::TextDiagnosticPrinter(llvm::errs(), ci->getDiagnostics().getDiagnosticOptions())
+        );
+    if (!fromFile) {
+        auto buffer = llvm::MemoryBuffer::getMemBuffer(source, "<jit-input>");
+            ci->getSourceManager().setMainFileID(
+                ci->getSourceManager().createFileID(std::move(buffer))
+        );
+        auto &FEOpts = ci->getInvocation().getFrontendOpts();
+        FEOpts.Inputs.clear();
+        FEOpts.Inputs.emplace_back(
+            ci->getSourceManager().getBufferOrFake(ci->getSourceManager().getMainFileID()),
+            clang::InputKind(clang::Language::CXX)
+        );
+    }
+    ci->getCodeGenOpts().DisableFree = false;
+    ci->getFrontendOpts().DisableFree = false;
+
+    LLVMInitializeX86AsmParser();
+    LLVMInitializeX86AsmPrinter();
+    LLVMInitializeX86Target();
+    LLVMInitializeX86TargetInfo();
+    LLVMInitializeX86TargetMC();
+
+    std::unique_ptr<clang::EmitLLVMOnlyAction> action =
+            std::make_unique<clang::EmitLLVMOnlyAction>();
+
+    if (!ci->ExecuteAction(*action)) {
+        llvm::errs() << "Failed to emit LLVM IR\n";
+        return nullptr;
+    }
+
+
+    std::unique_ptr<llvm::Module> M = action->takeModule();
+    //M->dump();
+
+    InitializeNativeTarget();
+    InitializeNativeTargetAsmPrinter();
+
+    std::unique_ptr<llvm::orc::LLJIT> JIT=llvm::cantFail(llvm::orc::LLJITBuilder().create());
+
+    auto EPC = cantFail(orc::SelfExecutorProcessControl::Create());
+    auto ES = std::make_unique<orc::ExecutionSession>(std::move(EPC));
+
+    orc::JITTargetMachineBuilder JTMB(
+            ES->getExecutorProcessControl().getTargetTriple());
+
+    auto DL = cantFail(JTMB.getDefaultDataLayoutForTarget());
+
+    JIT->getMainJITDylib().addGenerator(
+            cantFail(DynamicLibrarySearchGenerator::GetForCurrentProcess(DL.getGlobalPrefix()))
+    );
+
+
+    if (!M) {
+        return nullptr;
+    }
+
+    llvm::ExitOnError ExitOnErr;
+
+    ExitOnErr(JIT->addIRModule(ThreadSafeModule(std::move(M), std::make_unique<LLVMContext>())));
+
+    return std::move(JIT);
+}
+
+
+
 std::pair<bool, std::string> compile(const std::string& fileName,
                                      const std::vector<std::string>& compileArgs,
                                      const std::string& source) {

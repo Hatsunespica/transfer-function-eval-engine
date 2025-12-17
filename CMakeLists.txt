@@ -10,7 +10,12 @@ include_directories(include)
 include_directories(${LLVM_INCLUDE_DIRS} ${CLANG_INCLUDE_DIRS})
 add_executable(eval-engine
         src/main.cpp
-        src/JIT.cpp)
+        src/JIT.cpp
+        src/EvaluationBatch.cpp
+        src/EvaluationResult.cpp
+        src/EvaluationEngine.cpp
+        src/DataSampler.cpp
+        src/EvaluationParameter.cpp)
 
 llvm_map_components_to_libnames(LLVM_LIBS
     Core
