@@ -1,224 +1,78 @@
-#include <clang/CodeGen/CodeGenAction.h>
-#include <clang/Driver/Compilation.h>
-#include <clang/Driver/Driver.h>
-#include <clang/Frontend/CompilerInstance.h>
-#include <clang/Frontend/FrontendOptions.h>
-#include <llvm/Config/llvm-config.h>
-#include <llvm/Support/TargetSelect.h>
-#include <llvm/Support/VirtualFileSystem.h>
-#include "llvm/IR/Module.h"
-#include "llvm/ExecutionEngine/Orc/LLJIT.h"
-#include "llvm/ExecutionEngine/Orc/ThreadSafeModule.h"
-#include "llvm/Support/TargetSelect.h"
-#include "llvm/IR/LLVMContext.h"
-#include "llvm/IRReader/IRReader.h"
-#include "llvm/Support/SourceMgr.h"
-#include "llvm/ADT/APInt.h"
-#include <llvm/ExecutionEngine/JITSymbol.h>
-#include <llvm/ExecutionEngine/Orc/CompileUtils.h>
-#include <llvm/ExecutionEngine/Orc/Core.h>
-#include <llvm/ExecutionEngine/Orc/ExecutionUtils.h>
-#include <llvm/ExecutionEngine/Orc/ExecutorProcessControl.h>
-#include <llvm/ExecutionEngine/Orc/IRCompileLayer.h>
-#include <llvm/ExecutionEngine/Orc/JITTargetMachineBuilder.h>
-#include <llvm/ExecutionEngine/Orc/RTDyldObjectLinkingLayer.h>
-#include <llvm/ExecutionEngine/Orc/Shared/ExecutorAddress.h>
-#include <llvm/ExecutionEngine/SectionMemoryManager.h>
-#include "llvm/ExecutionEngine/Orc/SelfExecutorProcessControl.h"
-#include <llvm/IR/DataLayout.h>
-#include <llvm/IR/LLVMContext.h>
-#include <vector>
+#include "llvm/Support/CommandLine.h"
+#include "JIT.h"
+#include "llvm/Support/raw_ostream.h"
+
 
 using namespace llvm;
-using namespace llvm::orc;
-using namespace clang;
 
-constexpr llvm::StringRef kTargetTriple = "x86_64-unknown-linux-gnu";
+cl::opt<std::string> InputFile(
+        "file",
+        cl::desc("Specify input file name"),
+        cl::init(""),
+        cl::value_desc("filename")
+);
 
-namespace {
-struct DiagsSaver : DiagnosticConsumer {
-  std::string message;
-  llvm::raw_string_ostream os{message};
+cl::opt<std::string> SourceCode(
+        "source",
+        cl::desc("Specify input source code"),
+        cl::init(""),
+        cl::value_desc("source code")
+);
 
-  void HandleDiagnostic(DiagnosticsEngine::Level diagLevel, const Diagnostic &info) override {
-    DiagnosticConsumer::HandleDiagnostic(diagLevel, info);
-    const char *level;
-    switch (diagLevel) {
-    default:
-      return;
-    case DiagnosticsEngine::Note:
-      level = "note";
-      break;
-    case DiagnosticsEngine::Warning:
-      level = "warning";
-      break;
-    case DiagnosticsEngine::Error:
-    case DiagnosticsEngine::Fatal:
-      level = "error";
-      break;
-    }
+// 3. List of function names (comma separated or multiple flags)
+cl::list<std::string> FunctionNames(
+        "func",
+        cl::desc("Function names to process (can specify multiple times)"),
+        cl::OneOrMore,
+        cl::CommaSeparated,
+        cl::value_desc("name")
+);
 
-    llvm::SmallString<256> msg;
-    info.FormatDiagnostic(msg);
-    auto &sm = info.getSourceManager();
-    auto loc = info.getLocation();
-    auto fileLoc = sm.getFileLoc(loc);
-    os << sm.getFilename(fileLoc) << ':' << sm.getSpellingLineNumber(fileLoc)
-       << ':' << sm.getSpellingColumnNumber(fileLoc) << ": " << level << ": "
-       << msg << '\n';
-    if (loc.isMacroID()) {
-      loc = sm.getSpellingLoc(loc);
-      os << sm.getFilename(loc) << ':' << sm.getSpellingLineNumber(loc) << ':'
-         << sm.getSpellingColumnNumber(loc) << ": note: expanded from macro\n";
-    }
-  }
-};
-}
 
-static std::pair<bool, std::string> compile(int argc, char *argv[]) {
-  auto fs = llvm::vfs::getRealFileSystem();
-  DiagsSaver dc;
-  std::vector<const char *> args{"clang"};
-  args.insert(args.end(), argv + 1, argv + argc);
-  auto diagsOptions = DiagnosticOptions();
-  auto diags = CompilerInstance::createDiagnostics(
-      *fs,
-      diagsOptions, &dc, false);
-  clang::driver::Driver d(args[0], kTargetTriple, *diags, "cc", fs);
-  d.setCheckInputsExist(false);
-  std::unique_ptr<clang::driver::Compilation> comp(d.BuildCompilation(args));
-  const auto &jobs = comp->getJobs();
-  if (jobs.size() != 1)
-    return {false, "only support one job"};
-  const llvm::opt::ArgStringList &ccArgs = jobs.begin()->getArguments();
-  auto ci = std::make_unique<CompilerInstance>();
-  
-  CompilerInvocation::CreateFromArgs(ci->getInvocation(), ccArgs, *diags);
-  
-  
-  HeaderSearchOptions &HSO = ci->getInvocation().getHeaderSearchOpts();
-  HSO.AddPath("/usr/local/include",
-            clang::frontend::Angled,
-            false, false);
-  HSO.AddPath("/usr/local/lib/clang/22/include",
-            clang::frontend::Angled,
-            false, false);
+cl::opt<std::string> domain(
+        "domain",
+        cl::desc("The name of evaluated domain"),
+        cl::Required,
+        cl::value_desc("string")
+);
 
-  ci->createDiagnostics(*fs, &dc, false);
-  ci->getDiagnostics().getDiagnosticOptions().ShowCarets = false;
-  ci->createFileManager(fs);
-  ci->createSourceManager(ci->getFileManager());
+llvm::cl::list<std::string> JITConfig(
+        "jit-config",
+        llvm::cl::desc("Special configuration options for the JIT (can repeat)"),
+        llvm::cl::ZeroOrMore,
+        llvm::cl::value_desc("option")
+);
 
-  ci->getCodeGenOpts().DisableFree = false;
-  ci->getFrontendOpts().DisableFree = false;
+int main(int argc, char** argv) {
+  // Parse the command line
+  cl::ParseCommandLineOptions(argc, argv, "JIT + Evaluator + Aggregator Tool\n");
+  bool fromStdin=!SourceCode.empty();
 
-  LLVMInitializeX86AsmParser();
-  LLVMInitializeX86AsmPrinter();
-  LLVMInitializeX86Target();
-  LLVMInitializeX86TargetInfo();
-  LLVMInitializeX86TargetMC();
-
-  std::unique_ptr<clang::EmitLLVMOnlyAction> action =
-      std::make_unique<clang::EmitLLVMOnlyAction>();
-
-  if (!ci->ExecuteAction(*action)) {
-    llvm::errs() << "Failed to emit LLVM IR\n";
-    return {false, "error"};
+  // Validate input: user must provide either file or stdin
+  if (InputFile.empty() == SourceCode.empty()) {
+    errs() << "Error: Must specify --file=<file> or --source\n";
+    return 1;
   }
 
+  // Echo the inputs
+  outs() << "domain: " << domain << "\n";
+  if (!InputFile.empty())
+    outs() << "Input file: " << InputFile << "\n";
+  if (fromStdin)
+    outs() << "Reading source from stdin\n";
 
-  std::unique_ptr<llvm::Module> M = action->takeModule();
-  M->dump();
+  outs() << "Function names:\n";
+  for (const auto &fname : FunctionNames)
+    outs() << "  " << fname << "\n";
 
-  /*switch (ci->getFrontendOpts().ProgramAction) {
-  case frontend::ActionKind::EmitObj: {
-    EmitObjAction action;
-    ci->ExecuteAction(action);
-  } break;
-  case frontend::ActionKind::EmitAssembly: {
-    EmitAssemblyAction action;
-    ci->ExecuteAction(action);
-  } break;
-  case frontend::ActionKind::EmitLLVM: {
-    EmitLLVMAction action;
-    ci->ExecuteAction(action);
-  } break;  
-  default:
-    return {false, "unhandled action"};
-  }*/
-  
-    InitializeNativeTarget();
-    InitializeNativeTargetAsmPrinter();
+  outs() << "JIT configuration options:\n";
+  for (const auto &cfg : JITConfig) {
+    outs() << "  " << cfg << "\n";
+  }
 
-    // ─────────────────────────────────────────────
-    // Build JIT
-    // ─────────────────────────────────────────────
-    std::unique_ptr<llvm::orc::LLJIT> JIT=llvm::cantFail(llvm::orc::LLJITBuilder().create());
-
-    auto EPC = cantFail(orc::SelfExecutorProcessControl::Create());
-    auto ES = std::make_unique<orc::ExecutionSession>(std::move(EPC));
-
-    orc::JITTargetMachineBuilder JTMB(
-        ES->getExecutorProcessControl().getTargetTriple());
-
-    auto DL = cantFail(JTMB.getDefaultDataLayoutForTarget());
-
-    // allow JITed code to use libstdc++ / libc++ / libLLVM symbols
-    JIT->getMainJITDylib().addGenerator(
-        cantFail(DynamicLibrarySearchGenerator::GetForCurrentProcess(DL.getGlobalPrefix()))
-    );
-
-    // ─────────────────────────────────────────────
-    // Load LLVM IR file
-    // ─────────────────────────────────────────────
-    //std::unique_ptr<Module> M(parseIRFile("wrapper.ll", err, ctx));
-    if (!M) {
-         return {false, "error"};
-    }
-
-    llvm::ExitOnError ExitOnErr;
-
-    ExitOnErr(JIT->addIRModule(ThreadSafeModule(std::move(M), std::make_unique<LLVMContext>())));
-
-    // ─────────────────────────────────────────────
-    // Lookup symbol
-    // ─────────────────────────────────────────────
-    using TestFnTy = int(*)(int,int);
-    auto testSym = ExitOnErr(JIT->lookup("test"));
-
-
-    TestFnTy testFn = (TestFnTy)testSym.toPtr<TestFnTy>();
-    outs() << "Result 1 = " << testFn(1,2) << "\n";  
-
-
-    auto sym = ExitOnErr(JIT->lookup("getKB"));
-
-    using FnTy = void(*)(APInt**, APInt*);
-    FnTy getVector_C = (FnTy)sym.toPtr<FnTy>();
-
-    // ─────────────────────────────────────────────
-    // Prepare arguments
-    // ─────────────────────────────────────────────
-    std::vector<APInt> arg0{APInt(64, 123), APInt(64, 123)};
-    std::vector<APInt> arg1{APInt(64, 456), APInt(64, 456)};    
-
-    std::vector<APInt*> vargs{arg0.data(), arg1.data()};
-    std::vector<APInt> result={APInt(64, 456), APInt(64, 456)};
-
-    // ─────────────────────────────────────────────
-    // CALL THE JIT FUNCTION
-    // ─────────────────────────────────────────────
-    getVector_C(vargs.data(), result.data());
-
-    outs() << "Result 0 = " << result[0] << "\n";
-    outs() << "Result 1 = " << result[1] << "\n";  
-  
-      if (auto Err = ES->endSession())
-      ES->reportError(std::move(Err));
-  return {true, std::move(dc.message)};
-}
-
-int main(int argc, char *argv[]) {
-  auto [ok, err] = compile(argc, argv);
+  // Here you would pass InputFile/stdin, FunctionNames, and ID
+  // to your JIT / Evaluator / Aggregator
+  auto [ok, err] = compile(InputFile, JITConfig, SourceCode);
   llvm::errs() << err;
+  return 0;
 }

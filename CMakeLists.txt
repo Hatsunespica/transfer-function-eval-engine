@@ -6,8 +6,12 @@ cmake_minimum_required(VERSION 3.16)
 find_package(LLVM REQUIRED CONFIG)
 find_package(Clang REQUIRED CONFIG)
 
+include_directories(include)
 include_directories(${LLVM_INCLUDE_DIRS} ${CLANG_INCLUDE_DIRS})
-add_executable(eval-engine src/main.cpp)
+add_executable(eval-engine
+        src/main.cpp
+        src/JIT.cpp)
+
 llvm_map_components_to_libnames(LLVM_LIBS
     Core
     IRReader

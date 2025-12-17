@@ -1,0 +1,9 @@
+#ifndef TRANSFER_FUNCTION_EVAL_ENGINE_HEADER_INCLUDE_PATH_H
+#define TRANSFER_FUNCTION_EVAL_ENGINE_HEADER_INCLUDE_PATH_H
+
+std::string INCLUDE_PATHS[]{
+        "/usr/local/include",
+        "/usr/local/lib/clang/22/include",
+};
+
+#endif //TRANSFER_FUNCTION_EVAL_ENGINE_HEADER_INCLUDE_PATH_H
