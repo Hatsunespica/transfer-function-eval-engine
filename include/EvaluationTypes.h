@@ -21,6 +21,8 @@ namespace Evaluation {
     using ConstantAbstractFunction   = void(*)(AbstractDomain);
     using AbstractDomainConstraint   = bool(*)(AbstractDomain);
     using InstanceConstraint         = bool(*)(AbstractDomain, ConcreteDomain);
+    using FromConcrete = void(*)(ConcreteDomainVector, AbstractDomain);
+    using Distance = void(*)(AbstractDomain, AbstractDomain, APInt*);
 
     using ConcreteOperation          = void(*)(ConcreteDomainVector);
     using AbstractOperation          = void(*)(AbstractDomainVector);

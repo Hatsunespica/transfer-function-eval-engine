@@ -4,14 +4,13 @@
 #include "llvm/ExecutionEngine/Orc/LLJIT.h"
 #include "llvm/Support/Error.h"
 #include "EvaluationTypes.h"
-#include <vector>
-#include <string>
+#include "EvaluationParameter.h"
 
 
 namespace Evaluation{
 
 class EvaluationBatch {
-    std::vector<AbstractOperation> transferFunctions;
+    std::vector<AbstractOperation> transferFunctions, baseTransferFunctions;
     const static inline std::string CONCRETE_FUNCTION_NAME="concrete_op";
     ConcreteOperation concreteFunction;
 
@@ -20,6 +19,12 @@ class EvaluationBatch {
 
     const static inline std::string GET_TOP_NAME="getTop";
     ConstantAbstractFunction getTop, getBottom;
+
+    const static inline std::string FROM_CONCRETE_NAME="fromConcrete";
+    FromConcrete fromConcrete;
+
+    const static inline std::string DISTANCE_NAME = "distance";
+    Distance distance;
 
     const static inline std::string ABSTRACT_DOMAIN_CONSTRAINT_NAME="getConstraint";
     AbstractDomainConstraint abstractDomainConstraint;
@@ -30,9 +35,7 @@ class EvaluationBatch {
     llvm::ExitOnError ExitOnErr;
 public:
     EvaluationBatch(std::unique_ptr<llvm::orc::LLJIT> jitModule,
-        const std::vector<std::string>& trasnferFunctionNames,
-        const std::string& domain);
-
+        const EvaluationParameter& parameters);
 };
 }
 
