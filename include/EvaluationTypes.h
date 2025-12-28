@@ -2,18 +2,19 @@
 #define TRANSFER_FUNCTION_EVAL_ENGINE_EVALUATIONTYPES_H
 
 #include "llvm/ADT/APInt.h"
-#include <functional>
+#include <vector>
 
 namespace Evaluation {
-    template<typename T>
-    using function = std::function<T>;
     using APInt = llvm::APInt;
 
     // Here we only consider APInt domain
-    using ConcreteDomain = APInt*;
+    // A concrete value is an APInt
+    using ConcreteValue = APInt;
+    using ConcreteDomain = ConcreteValue*;
     using ConcreteDomainVector = ConcreteDomain*;
-    // An abstract domain consists of multiple APInts
-    using AbstractDomain = APInt**;
+    // An abstract value consists of multiple APInts
+    using AbstractValue = std::vector<APInt>;
+    using AbstractDomain = APInt*;
     using AbstractDomainVector = AbstractDomain*;
 
     using BinaryAbstractFunction     = void(*)(AbstractDomain, AbstractDomain, AbstractDomain);
@@ -21,8 +22,8 @@ namespace Evaluation {
     using ConstantAbstractFunction   = void(*)(AbstractDomain);
     using AbstractDomainConstraint   = bool(*)(AbstractDomain);
     using InstanceConstraint         = bool(*)(AbstractDomain, ConcreteDomain);
-    using FromConcrete = void(*)(ConcreteDomainVector, AbstractDomain);
-    using Distance = void(*)(AbstractDomain, AbstractDomain, APInt*);
+    using FromConcreteFunction = void(*)(ConcreteDomainVector, AbstractDomain);
+    using DistanceFunction = void(*)(AbstractDomain, AbstractDomain, APInt*);
 
     using ConcreteOperation          = void(*)(ConcreteDomainVector);
     using AbstractOperation          = void(*)(AbstractDomainVector);

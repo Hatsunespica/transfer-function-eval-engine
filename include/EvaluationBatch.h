@@ -21,10 +21,10 @@ class EvaluationBatch {
     ConstantAbstractFunction getTop, getBottom;
 
     const static inline std::string FROM_CONCRETE_NAME="fromConcrete";
-    FromConcrete fromConcrete;
+    FromConcreteFunction fromConcrete;
 
     const static inline std::string DISTANCE_NAME = "distance";
-    Distance distance;
+    DistanceFunction distance;
 
     const static inline std::string ABSTRACT_DOMAIN_CONSTRAINT_NAME="getConstraint";
     AbstractDomainConstraint abstractDomainConstraint;

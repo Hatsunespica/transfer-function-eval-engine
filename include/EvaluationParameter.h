@@ -11,6 +11,8 @@ class EvaluationParameter {
     const std::vector<std::string>& transferFunctionNames;
     const std::vector<std::string>& baseTransferFunctionNames;
     const std::string& domain;
+    const size_t& concreteDomainLength;
+    const size_t& abstractDomainLength;
     const std::vector<size_t>& enumerateBitWidth;
     const std::vector<size_t>& sampleBitWidth;
     const std::vector<size_t>& sampleAmount;
@@ -21,6 +23,8 @@ public:
         const std::vector<std::string>& transferFunctionNames,
         const std::vector<std::string>& baseTransferFunctionNames,
         const std::string& domain,
+        const size_t& concreteDomainLength,
+        const size_t& abstractDomainLength,
         const std::vector<size_t>& enumerateBitWidth,
         const std::vector<size_t>& sampleBitWidth,
         const std::vector<size_t>& sampleAmount)
@@ -28,6 +32,8 @@ public:
           transferFunctionNames(transferFunctionNames),
           baseTransferFunctionNames(baseTransferFunctionNames),
           domain(domain),
+          concreteDomainLength(concreteDomainLength),
+          abstractDomainLength(abstractDomainLength),
           enumerateBitWidth(enumerateBitWidth),
           sampleBitWidth(sampleBitWidth),
           sampleAmount(sampleAmount) {}
@@ -47,6 +53,14 @@ public:
 
     const std::string& getDomain() const {
         return domain;
+    }
+
+    const size_t& getConcreteDomainLength() const {
+        return concreteDomainLength;
+    }
+
+    const size_t& getAbstractDomainLength() const {
+        return abstractDomainLength;
     }
 
     const std::vector<size_t>& getEnumerateBitWidth() const {
