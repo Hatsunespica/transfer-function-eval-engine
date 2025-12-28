@@ -1,9 +1,9 @@
 #ifndef TRANSFER_FUNCTION_EVAL_ENGINE_DATASAMPLER_H
 #define TRANSFER_FUNCTION_EVAL_ENGINE_DATASAMPLER_H
 
-#include "EvaluationTypes.h"
-#include "EvaluationParameter.h"
+#include "EvaluationBatch.h"
 #include <filesystem>
+#include <unordered_map>
 
 namespace Evaluation {
 
@@ -14,10 +14,10 @@ class AbstractConcreteValuePair {
 public:
     // Constructor
     AbstractConcreteValuePair(
-        AbstractValue abstractValue,
-        std::vector<ConcreteValue> concreteValues)
-        : abstractValue(std::move(abstractValue)),
-          concreteValues(std::move(concreteValues)) {}
+        const AbstractValue& abstractValue,
+        const std::vector<ConcreteValue>& concreteValues)
+        : abstractValue(abstractValue),
+          concreteValues(concreteValues) {}
 
     // Getters
     const AbstractValue& getAbstractValue() const {
@@ -70,13 +70,22 @@ class DataSampler {
     const std::string& domain;
     const size_t& concreteDomainLength;
     const size_t& abstractDomainLength;
+    std::unordered_map<size_t, SampleParameter> bitWidthToSampleParameter;
     std::filesystem::path getDataPath(size_t bitWidth) const;
+    std::filesystem::path getDataFilePath(size_t bitWidth) const;
 
-    void saveData(std::vector<AbstractConcreteValuePair>& data, size_t bitWidth) const;
-    std::vector<AbstractConcreteValuePair> loadData(size_t bitWidth);
-    std::vector<AbstractConcreteValuePair> sampleData(size_t bitWidth);
+    AbstractDomainConstraint abstractDomainConstraint;
+    InstanceConstraint instanceConstraint;
+
+    void saveData(const std::filesystem::path& path, std::vector<AbstractConcreteValuePair>& data, size_t bitWidth) const;
+    std::vector<AbstractConcreteValuePair> loadData(const std::filesystem::path& path, size_t bitWidth)const;
+    std::vector<AbstractConcreteValuePair> sampleData(size_t bitWidth)const;
+
+    AbstractValue initAbstractValue(size_t bitWidth)const;
+    bool nextAbstractValue(AbstractValue& abstractValue)const;
+    std::vector<ConcreteValue> sampleConcreteValues(AbstractValue& abstractValue, size_t bitWidth)const;
 public:
-    DataSampler(const EvaluationParameter& evaluationParameter);
+    DataSampler(const EvaluationParameter& evaluationParameter, const EvaluationBatch& evaluationBatch);
     std::vector<AbstractConcreteValuePair> getData(size_t bitWidth);
     std::vector<std::vector<AbstractDomain>> getHistoryConterexamples(size_t bitwidth, size_t arity);
 };
