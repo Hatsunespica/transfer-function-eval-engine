@@ -129,10 +129,12 @@ std::unique_ptr<llvm::orc::LLJIT> createJITModule(const std::string& fileName,
                     false, false);
     }
 
-    ci->createDiagnostics(*fs, &dc, false);
+    ci->createDiagnostics(&dc, false);
+    ci->setDiagnostics(diags);
     ci->getDiagnostics().getDiagnosticOptions().ShowCarets = false;
-    ci->createFileManager(fs);
-    ci->createSourceManager(ci->getFileManager());
+    ci->setVirtualFileSystem(fs);
+    ci->createFileManager();
+    ci->createSourceManager();
 
     ci->getDiagnostics().setClient(
         new clang::TextDiagnosticPrinter(llvm::errs(), ci->getDiagnostics().getDiagnosticOptions())
@@ -252,10 +254,12 @@ std::pair<bool, std::string> compile(const std::string& fileName,
                     false, false);
     }
 
-    ci->createDiagnostics(*fs, &dc, false);
+    ci->createDiagnostics(&dc, false);
+    ci->setDiagnostics(diags);
     ci->getDiagnostics().getDiagnosticOptions().ShowCarets = false;
-    ci->createFileManager(fs);
-    ci->createSourceManager(ci->getFileManager());
+    ci->setVirtualFileSystem(fs);
+    ci->createFileManager();
+    ci->createSourceManager();
 
     ci->getDiagnostics().setClient(
         new clang::TextDiagnosticPrinter(llvm::errs(), ci->getDiagnostics().getDiagnosticOptions())
