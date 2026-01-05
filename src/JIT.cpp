@@ -129,7 +129,6 @@ std::unique_ptr<llvm::orc::LLJIT> createJITModule(const std::string& fileName,
                     false, false);
     }
 
-    ci->createDiagnostics(&dc, false);
     ci->setDiagnostics(diags);
     ci->getDiagnostics().getDiagnosticOptions().ShowCarets = false;
     ci->setVirtualFileSystem(fs);
@@ -254,7 +253,6 @@ std::pair<bool, std::string> compile(const std::string& fileName,
                     false, false);
     }
 
-    ci->createDiagnostics(&dc, false);
     ci->setDiagnostics(diags);
     ci->getDiagnostics().getDiagnosticOptions().ShowCarets = false;
     ci->setVirtualFileSystem(fs);
