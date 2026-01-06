@@ -1,6 +1,7 @@
 #include "llvm/Support/CommandLine.h"
 #include "JIT.h"
 #include "llvm/Support/raw_ostream.h"
+#include "EvaluationEngine.h"
 
 
 using namespace llvm;
@@ -19,13 +20,27 @@ cl::opt<std::string> SourceCode(
         cl::value_desc("source code")
 );
 
-// 3. List of function names (comma separated or multiple flags)
-cl::list<std::string> FunctionNames(
-        "func",
-        cl::desc("Function names to process (can specify multiple times)"),
+cl::opt<std::string> DataCachePath(
+        "dataCachePath",
+        cl::desc("Specify data cache path"),
+        cl::init(""),
+        cl::value_desc("data cache path")
+);
+
+cl::list<std::string> TransferFunctionNames(
+        "transfer-function",
+        cl::desc("Transfer Function names to process"),
         cl::OneOrMore,
         cl::CommaSeparated,
-        cl::value_desc("name")
+        cl::value_desc("transfer function names")
+);
+
+cl::list<std::string> BaseTransferFunctionNames(
+        "base-transfer-function",
+        cl::desc("Base transfer Function names to process"),
+        cl::OneOrMore,
+        cl::CommaSeparated,
+        cl::value_desc("base transfer function names")
 );
 
 
@@ -35,6 +50,46 @@ cl::opt<std::string> domain(
         cl::Required,
         cl::value_desc("string")
 );
+
+cl::opt<size_t> AbstractDomainLength(
+        "abstract-domain-length",
+        cl::desc("The length of the abstract domain"),
+        cl::Required,
+        cl::value_desc("length")
+);
+
+cl::list<size_t> EnumerateBitWidth(
+    "enumerate-bit-width",
+    cl::desc("Bit widths used for enumeration"),
+    cl::OneOrMore,
+    cl::CommaSeparated,
+    cl::value_desc("int")
+);
+
+cl::list<size_t> SampleBitWidth(
+    "sample-bit-width",
+    cl::desc("Bit widths used for sampling"),
+    cl::OneOrMore,
+    cl::CommaSeparated,
+    cl::value_desc("int")
+);
+
+cl::list<size_t> SampleAbstractAmount(
+    "sample-abstract-amount",
+    cl::desc("Number of abstract samples to generate"),
+    cl::OneOrMore,
+    cl::CommaSeparated,
+    cl::value_desc("int")
+);
+
+cl::list<size_t> SampleConcreteAmount(
+    "sample-concrete-amount",
+    cl::desc("Number of concrete samples to generate"),
+    cl::OneOrMore,
+    cl::CommaSeparated,
+    cl::value_desc("int")
+);
+
 
 llvm::cl::list<std::string> JITConfig(
         "jit-config",
@@ -62,7 +117,7 @@ int main(int argc, char** argv) {
     outs() << "Reading source from stdin\n";
 
   outs() << "Function names:\n";
-  for (const auto &fname : FunctionNames)
+  for (const auto &fname : TransferFunctionNames)
     outs() << "  " << fname << "\n";
 
   outs() << "JIT configuration options:\n";
@@ -70,9 +125,18 @@ int main(int argc, char** argv) {
     outs() << "  " << cfg << "\n";
   }
 
-  // Here you would pass InputFile/stdin, FunctionNames, and ID
-  // to your JIT / Evaluator / Aggregator
-  auto [ok, err] = compile(InputFile, JITConfig, SourceCode);
-  llvm::errs() << err;
+    // Here you would pass InputFile/stdin, FunctionNames, and ID
+    // to your JIT / Evaluator / Aggregator
+    // auto [ok, err] = compile(InputFile, JITConfig, SourceCode);
+    // llvm::errs() << err;
+    std::unique_ptr<llvm::orc::LLJIT> jitModulePtr = createJITModule(InputFile, JITConfig, SourceCode);
+    using namespace Evaluation;
+    size_t ConcreteDomainLength = 1;
+    EvaluationParameter evaluationParameter(DataCachePath, TransferFunctionNames, BaseTransferFunctionNames, domain,
+        ConcreteDomainLength, AbstractDomainLength, EnumerateBitWidth, SampleBitWidth, SampleAbstractAmount,
+        SampleConcreteAmount);
+    EvaluationBatch evaluationBatch(*jitModulePtr, evaluationParameter);
+
+
   return 0;
 }

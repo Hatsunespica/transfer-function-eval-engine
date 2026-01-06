@@ -15,7 +15,8 @@ class EvaluationParameter {
     const size_t& abstractDomainLength;
     const std::vector<size_t>& enumerateBitWidth;
     const std::vector<size_t>& sampleBitWidth;
-    const std::vector<size_t>& sampleAmount;
+    const std::vector<size_t>& sampleAbstractAmount;
+    const std::vector<size_t>& sampleConcreteAmount;
 
 public:
     EvaluationParameter(
@@ -27,7 +28,8 @@ public:
         const size_t& abstractDomainLength,
         const std::vector<size_t>& enumerateBitWidth,
         const std::vector<size_t>& sampleBitWidth,
-        const std::vector<size_t>& sampleAmount)
+        const std::vector<size_t>& sampleAbstractAmount,
+        const std::vector<size_t>& sampleConcreteAmount)
         : dataCachePath(dataCachePath),
           transferFunctionNames(transferFunctionNames),
           baseTransferFunctionNames(baseTransferFunctionNames),
@@ -36,7 +38,8 @@ public:
           abstractDomainLength(abstractDomainLength),
           enumerateBitWidth(enumerateBitWidth),
           sampleBitWidth(sampleBitWidth),
-          sampleAmount(sampleAmount) {}
+          sampleAbstractAmount(sampleAbstractAmount),
+          sampleConcreteAmount(sampleConcreteAmount){}
 
     // Getters
     const std::string& getDataCachePath() const {
@@ -71,8 +74,12 @@ public:
         return sampleBitWidth;
     }
 
-    const std::vector<size_t>& getSampleAmount() const {
-        return sampleAmount;
+    const std::vector<size_t>& getSampleAbstractAmount() const {
+        return sampleAbstractAmount;
+    }
+
+    const std::vector<size_t>& getSampleConcreteAmount() const {
+        return sampleConcreteAmount;
     }
 };
 

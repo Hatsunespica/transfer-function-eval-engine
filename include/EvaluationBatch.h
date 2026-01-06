@@ -35,7 +35,7 @@ class EvaluationBatch {
     llvm::ExitOnError ExitOnErr;
 
 public:
-    EvaluationBatch(std::unique_ptr<llvm::orc::LLJIT> jitModule,
+    EvaluationBatch(llvm::orc::LLJIT& jitModule,
                     const EvaluationParameter& parameters);
 
 

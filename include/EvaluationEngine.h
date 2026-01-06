@@ -9,8 +9,12 @@
 namespace Evaluation {
 
 class EvaluationEngine {
+    const EvaluationParameter& evaluationParameter;
+    const EvaluationBatch& evaluationBatch;
+    DataSampler dataSampler;
 public:
-    EvaluationEngine();
+    EvaluationEngine(const EvaluationParameter& evaluationParameter, const EvaluationBatch& evaluationBatch);
+    void evaluateBatch();
 };
 
 }
