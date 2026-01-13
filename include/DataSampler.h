@@ -67,6 +67,7 @@ class DataSampler {
     const static inline std::string DATA_FILE_NAME="data";
 
     const std::filesystem::path dataCachePath;
+    const size_t& maxOperationLength;
     const std::string& domain;
     const size_t& concreteDomainLength;
     const size_t& abstractDomainLength;

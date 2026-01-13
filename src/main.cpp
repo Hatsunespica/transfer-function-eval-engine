@@ -21,7 +21,7 @@ cl::opt<std::string> SourceCode(
 );
 
 cl::opt<std::string> DataCachePath(
-        "dataCachePath",
+        "data-cache-path",
         cl::desc("Specify data cache path"),
         cl::init(""),
         cl::value_desc("data cache path")
@@ -43,6 +43,12 @@ cl::list<std::string> BaseTransferFunctionNames(
         cl::value_desc("base transfer function names")
 );
 
+cl::opt<size_t> MaxOperationLength(
+        "max-operation-length",
+        cl::desc("The maximal length of operations"),
+        cl::Required,
+        cl::value_desc("length")
+);
 
 cl::opt<std::string> domain(
         "domain",
@@ -132,11 +138,13 @@ int main(int argc, char** argv) {
     std::unique_ptr<llvm::orc::LLJIT> jitModulePtr = createJITModule(InputFile, JITConfig, SourceCode);
     using namespace Evaluation;
     size_t ConcreteDomainLength = 1;
-    EvaluationParameter evaluationParameter(DataCachePath, TransferFunctionNames, BaseTransferFunctionNames, domain,
+    EvaluationParameter evaluationParameter(DataCachePath, TransferFunctionNames, BaseTransferFunctionNames,
+        MaxOperationLength, domain,
         ConcreteDomainLength, AbstractDomainLength, EnumerateBitWidth, SampleBitWidth, SampleAbstractAmount,
         SampleConcreteAmount);
     EvaluationBatch evaluationBatch(*jitModulePtr, evaluationParameter);
-
+    EvaluationEngine evaluationEngine(evaluationParameter, evaluationBatch);
+    evaluationEngine.evaluateBatch();
 
   return 0;
 }

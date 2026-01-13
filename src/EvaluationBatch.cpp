@@ -6,7 +6,6 @@ EvaluationBatch::EvaluationBatch(llvm::orc::LLJIT& jitModule,
     const EvaluationParameter& parameters) {
 
     ExitOnErr = llvm::ExitOnError("Cannot find desired function");
-
     abstractDomainConstraint = ExitOnErr(jitModule.lookup(ABSTRACT_DOMAIN_CONSTRAINT_NAME)).toPtr<AbstractDomainConstraint>();
     instanceConstraint = ExitOnErr(jitModule.lookup(INSTANCE_CONSTRAINT_NAME)).toPtr<InstanceConstraint>();
     getTop = ExitOnErr(jitModule.lookup(GET_TOP_NAME)).toPtr<ConstantAbstractFunction>();

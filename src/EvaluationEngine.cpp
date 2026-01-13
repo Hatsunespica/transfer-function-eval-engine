@@ -6,6 +6,6 @@ namespace Evaluation {
         evaluationBatch(evaluationBatch), dataSampler(evaluationParameter, evaluationBatch){}
 
     void EvaluationEngine::evaluateBatch() {
-
+        llvm::errs()<<"Eval batch\n";
     }
 }

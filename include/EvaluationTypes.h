@@ -10,8 +10,9 @@ namespace Evaluation {
     // Here we only consider APInt domain
     // A concrete value is an APInt
     using ConcreteValue = APInt;
+    using ConcreteValueVector = APInt*;
     using ConcreteDomain = ConcreteValue*;
-    using ConcreteDomainVector = ConcreteDomain*;
+    using ConcreteDomainVector = ConcreteDomain;
     // An abstract value consists of multiple APInts
     using AbstractValue = std::vector<APInt>;
     using AbstractDomain = APInt*;
@@ -19,12 +20,12 @@ namespace Evaluation {
 
     using BinaryAbstractFunction     = void(*)(AbstractDomain, AbstractDomain, AbstractDomain);
     using UnaryAbstractFunction      = void(*)(AbstractDomain, AbstractDomain);
-    using ConstantAbstractFunction   = void(*)(AbstractDomain);
+    // The only argument is used for obtaining bitwidth
+    using ConstantAbstractFunction   = void(*)(AbstractDomain, AbstractDomain);
     using AbstractDomainConstraint   = bool(*)(AbstractDomain);
     using InstanceConstraint         = bool(*)(AbstractDomain, ConcreteDomain);
-    using FromConcreteFunction = void(*)(ConcreteDomainVector, AbstractDomain);
+    using FromConcreteFunction = void(*)(ConcreteDomain, AbstractDomain);
     using DistanceFunction = void(*)(AbstractDomain, AbstractDomain, APInt*);
-
     using ConcreteOperation          = void(*)(ConcreteDomainVector);
     using AbstractOperation          = void(*)(AbstractDomainVector);
 };

@@ -8,6 +8,7 @@ namespace Evaluation {
 
 DataSampler::DataSampler(const EvaluationParameter& evaluationParameter, const EvaluationBatch& evaluationBatch):
     dataCachePath(evaluationParameter.getDataCachePath()),
+    maxOperationLength(evaluationParameter.getMaxOperationLength()),
     domain(evaluationParameter.getDomain()),
     concreteDomainLength(evaluationParameter.getConcreteDomainLength()),
     abstractDomainLength(evaluationParameter.getAbstractDomainLength()),
@@ -126,6 +127,7 @@ std::vector<AbstractConcreteValuePair> DataSampler::sampleData(size_t bitWidth)c
     assert(sampleParameterIt!=bitWidthToSampleParameter.end());
     const SampleParameter& sampleParameter = sampleParameterIt->second;
     std::vector<AbstractConcreteValuePair> result;
+    std::vector<ConcreteValue> tmpValues(maxOperationLength);
     if (sampleParameter.getSamplePolicy() == SamplePolicy::FULL_ENUMERATION) {
         AbstractValue abstractValue = initAbstractValue(bitWidth);
         do {

@@ -175,14 +175,14 @@ std::unique_ptr<llvm::orc::LLJIT> createJITModule(const std::string& fileName,
     InitializeNativeTargetAsmPrinter();
 
     std::unique_ptr<llvm::orc::LLJIT> JIT=llvm::cantFail(llvm::orc::LLJITBuilder().create());
-
+    /*
     auto EPC = cantFail(orc::SelfExecutorProcessControl::Create());
     auto ES = std::make_unique<orc::ExecutionSession>(std::move(EPC));
 
     orc::JITTargetMachineBuilder JTMB(
-            ES->getExecutorProcessControl().getTargetTriple());
+            ES->getExecutorProcessControl().getTargetTriple());*/
 
-    auto DL = cantFail(JTMB.getDefaultDataLayoutForTarget());
+    auto& DL = JIT->getDataLayout();//cantFail(JTMB.getDefaultDataLayoutForTarget());
 
     JIT->getMainJITDylib().addGenerator(
             cantFail(DynamicLibrarySearchGenerator::GetForCurrentProcess(DL.getGlobalPrefix()))
@@ -196,6 +196,11 @@ std::unique_ptr<llvm::orc::LLJIT> createJITModule(const std::string& fileName,
     llvm::ExitOnError ExitOnErr;
 
     ExitOnErr(JIT->addIRModule(ThreadSafeModule(std::move(M), std::make_unique<LLVMContext>())));
+
+    using TestFnTy = void(*)();
+    auto testJIT = ExitOnErr(JIT->lookup("evalHead"));
+    TestFnTy testFn = (TestFnTy)testJIT.toPtr<TestFnTy>();
+    testFn();
 
     return std::move(JIT);
 }

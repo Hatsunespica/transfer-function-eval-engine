@@ -10,6 +10,7 @@ class EvaluationParameter {
     const std::string& dataCachePath;
     const std::vector<std::string>& transferFunctionNames;
     const std::vector<std::string>& baseTransferFunctionNames;
+    const size_t& maxOperationLength;
     const std::string& domain;
     const size_t& concreteDomainLength;
     const size_t& abstractDomainLength;
@@ -23,6 +24,7 @@ public:
         const std::string& dataCachePath,
         const std::vector<std::string>& transferFunctionNames,
         const std::vector<std::string>& baseTransferFunctionNames,
+        const size_t& maxOperationLength,
         const std::string& domain,
         const size_t& concreteDomainLength,
         const size_t& abstractDomainLength,
@@ -33,6 +35,7 @@ public:
         : dataCachePath(dataCachePath),
           transferFunctionNames(transferFunctionNames),
           baseTransferFunctionNames(baseTransferFunctionNames),
+          maxOperationLength(maxOperationLength),
           domain(domain),
           concreteDomainLength(concreteDomainLength),
           abstractDomainLength(abstractDomainLength),
@@ -52,6 +55,10 @@ public:
 
     const std::vector<std::string>& getBaseTransferFunctionNames() const {
         return baseTransferFunctionNames;
+    }
+
+    const size_t& getMaxOperationLength() const {
+        return maxOperationLength;
     }
 
     const std::string& getDomain() const {
