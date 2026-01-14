@@ -16,8 +16,8 @@ extern "C" bool  getInstanceConstraint(APInt* abstractDomain, APInt* concreteVal
     APInt orOne = abstractDomain[1] | concreteValue[0];
     APInt neg = ~concreteValue[0];
     APInt orZero = abstractDomain[0] | neg;
-    bool cmp1 = orOne == abstractDomain[1];
-    bool cmp2 = orZero == abstractDomain[0];
+    bool cmp1 = (orOne == concreteValue[0]);
+    bool cmp2 = (orZero == neg);
     return cmp1 && cmp2;
 }
 
@@ -26,6 +26,16 @@ extern "C" void getTop(APInt* abstractDomain, APInt* result) {
     APInt allOnes = APInt::getAllOnes(abstractDomain[0].getBitWidth());
     result[0] = zero;
     result[1]= allOnes;
+}
+
+extern "C" void meet(APInt* abstractDomain1, APInt* abstractDomain2, APInt* result) {
+    result[0] = abstractDomain1[0] | abstractDomain2[0];
+    result[1] = abstractDomain1[1] | abstractDomain2[1];
+}
+
+extern "C" void join(APInt* abstractDomain1, APInt* abstractDomain2, APInt* result) {
+    result[0] = abstractDomain1[0] & abstractDomain2[0];
+    result[1] = abstractDomain1[1] & abstractDomain2[1];
 }
 
 extern "C" void distance(APInt* abstractDomain1, APInt* abstractDomain2, APInt* result) {

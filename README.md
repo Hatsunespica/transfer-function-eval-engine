@@ -44,6 +44,6 @@ using namespace std;
  '
  
  
- ./build/eval-engine  --file=./test/knownBitsTest.cpp  --transfer-function="test" --base-transfer-function="baseTest" --domain="knownBits" --abstract-domain-length=2 --enumerate-bit-width=4 --sample-bit-width=8 --sample-concrete-amount=100 --sample-abstract-amount=0 --jit-config="-S" --max-operation-length=32 --data-cache-path="./data"
+ ./build/eval-engine  --file=./test/knownBitsTest.cpp  --transfer-function="test" --base-transfer-function="baseTest" --domain="knownBits" --abstract-domain-length=2 --enumerate-bit-width=4,3,2,1 --sample-bit-width=8 --sample-concrete-amount=100 --sample-abstract-amount=0 --jit-config="-S" --max-operation-length=32 --data-cache-path="./data" --transfer-function-arity=2
 
 ```

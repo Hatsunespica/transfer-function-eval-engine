@@ -5,6 +5,7 @@
 #include "EvaluationBatch.h"
 #include "EvaluationParameter.h"
 #include "EvaluationResult.h"
+#include <functional>
 
 namespace Evaluation {
 
@@ -12,9 +13,17 @@ class EvaluationEngine {
     const EvaluationParameter& evaluationParameter;
     const EvaluationBatch& evaluationBatch;
     DataSampler dataSampler;
+
+    bool nextIndices(std::vector<size_t>& indices, const std::vector<size_t>& limits,
+        std::function<void(size_t, size_t)> argSetter);
+
+    AbstractValue computeBestAbstractValue(const std::vector<AbstractConcreteValuePair>& abstractConcreteValuePairs,
+        const std::vector<size_t>& indices, ConcreteOperation concreteOperation, BinaryAbstractFunction join,
+        FromConcreteFunction fromConcreteFunction);
+
 public:
     EvaluationEngine(const EvaluationParameter& evaluationParameter, const EvaluationBatch& evaluationBatch);
-    void evaluateBatch();
+    EvaluationResult evaluateBatch();
 };
 
 }

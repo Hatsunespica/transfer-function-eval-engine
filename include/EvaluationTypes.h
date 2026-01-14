@@ -26,8 +26,8 @@ namespace Evaluation {
     using InstanceConstraint         = bool(*)(AbstractDomain, ConcreteDomain);
     using FromConcreteFunction = void(*)(ConcreteDomain, AbstractDomain);
     using DistanceFunction = void(*)(AbstractDomain, AbstractDomain, APInt*);
-    using ConcreteOperation          = void(*)(ConcreteDomainVector);
-    using AbstractOperation          = void(*)(AbstractDomainVector);
+    using ConcreteOperation          = void(*)(ConcreteDomainVector, ConcreteDomain);
+    using AbstractOperation          = void(*)(AbstractDomainVector, AbstractDomain);
 };
 
 #endif //TRANSFER_FUNCTION_EVAL_ENGINE_EVALUATIONTYPES_H

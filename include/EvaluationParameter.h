@@ -14,6 +14,7 @@ class EvaluationParameter {
     const std::string& domain;
     const size_t& concreteDomainLength;
     const size_t& abstractDomainLength;
+    const size_t& transferFunctionArity;
     const std::vector<size_t>& enumerateBitWidth;
     const std::vector<size_t>& sampleBitWidth;
     const std::vector<size_t>& sampleAbstractAmount;
@@ -28,6 +29,7 @@ public:
         const std::string& domain,
         const size_t& concreteDomainLength,
         const size_t& abstractDomainLength,
+        const size_t& transferFunctionArity,
         const std::vector<size_t>& enumerateBitWidth,
         const std::vector<size_t>& sampleBitWidth,
         const std::vector<size_t>& sampleAbstractAmount,
@@ -39,6 +41,7 @@ public:
           domain(domain),
           concreteDomainLength(concreteDomainLength),
           abstractDomainLength(abstractDomainLength),
+        transferFunctionArity(transferFunctionArity),
           enumerateBitWidth(enumerateBitWidth),
           sampleBitWidth(sampleBitWidth),
           sampleAbstractAmount(sampleAbstractAmount),
@@ -71,6 +74,10 @@ public:
 
     const size_t& getAbstractDomainLength() const {
         return abstractDomainLength;
+    }
+
+    const size_t& getTransferFunctionArity() const {
+        return transferFunctionArity;
     }
 
     const std::vector<size_t>& getEnumerateBitWidth() const {

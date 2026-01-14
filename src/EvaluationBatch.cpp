@@ -11,6 +11,9 @@ EvaluationBatch::EvaluationBatch(llvm::orc::LLJIT& jitModule,
     getTop = ExitOnErr(jitModule.lookup(GET_TOP_NAME)).toPtr<ConstantAbstractFunction>();
     distance = ExitOnErr(jitModule.lookup(DISTANCE_NAME)).toPtr<DistanceFunction>();
     fromConcrete = ExitOnErr(jitModule.lookup(FROM_CONCRETE_NAME)).toPtr<FromConcreteFunction>();
+    meet = ExitOnErr(jitModule.lookup(MEET_NAME)).toPtr<BinaryAbstractFunction>();
+    join = ExitOnErr(jitModule.lookup(JOIN_NAME)).toPtr<BinaryAbstractFunction>();
+
 
     concreteFunction = ExitOnErr(jitModule.lookup(CONCRETE_FUNCTION_NAME)).toPtr<ConcreteOperation>();
     for (const auto& functionName : parameters.getTransferFunctionNames()) {

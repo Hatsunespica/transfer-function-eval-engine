@@ -64,6 +64,13 @@ cl::opt<size_t> AbstractDomainLength(
         cl::value_desc("length")
 );
 
+cl::opt<size_t> TransferFunctionArity(
+        "transfer-function-arity",
+        cl::desc("The arity of transfer functions"),
+        cl::Required,
+        cl::value_desc("arity")
+);
+
 cl::list<size_t> EnumerateBitWidth(
     "enumerate-bit-width",
     cl::desc("Bit widths used for enumeration"),
@@ -140,7 +147,7 @@ int main(int argc, char** argv) {
     size_t ConcreteDomainLength = 1;
     EvaluationParameter evaluationParameter(DataCachePath, TransferFunctionNames, BaseTransferFunctionNames,
         MaxOperationLength, domain,
-        ConcreteDomainLength, AbstractDomainLength, EnumerateBitWidth, SampleBitWidth, SampleAbstractAmount,
+        ConcreteDomainLength, AbstractDomainLength, TransferFunctionArity, EnumerateBitWidth, SampleBitWidth, SampleAbstractAmount,
         SampleConcreteAmount);
     EvaluationBatch evaluationBatch(*jitModulePtr, evaluationParameter);
     EvaluationEngine evaluationEngine(evaluationParameter, evaluationBatch);

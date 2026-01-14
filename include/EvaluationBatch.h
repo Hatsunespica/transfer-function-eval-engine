@@ -15,6 +15,7 @@ class EvaluationBatch {
     ConcreteOperation concreteFunction;
 
     const static inline std::string MEET_NAME = "meet";
+    const static inline std::string JOIN_NAME = "join";
     BinaryAbstractFunction meet, join;
 
     const static inline std::string GET_TOP_NAME = "getTop";

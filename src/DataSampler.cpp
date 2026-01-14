@@ -17,6 +17,27 @@ DataSampler::DataSampler(const EvaluationParameter& evaluationParameter, const E
 
     using namespace std::filesystem;
     assert(exists(dataCachePath) && is_directory(dataCachePath));
+
+    for (size_t bitWidth:evaluationParameter.getEnumerateBitWidth()) {
+        bitWidthToSampleParameter.emplace(bitWidth, SampleParameter(SamplePolicy::FULL_ENUMERATION));
+    }
+
+    auto& sampleBitWidth=evaluationParameter.getSampleBitWidth();
+    auto& sampleAbstractAmount = evaluationParameter.getSampleAbstractAmount();
+    auto& sampleConcreteAmount = evaluationParameter.getSampleConcreteAmount();
+    assert(sampleBitWidth.size() == sampleAbstractAmount.size() && sampleBitWidth.size() == sampleConcreteAmount.size());
+
+    for (size_t i=0;i<sampleBitWidth.size();++i) {
+        if (sampleAbstractAmount[i] == 0) {
+            bitWidthToSampleParameter.emplace(sampleBitWidth[i], SampleParameter(SamplePolicy::SAMPLE_CONCRETE, sampleConcreteAmount[i]));
+        }else {
+            bitWidthToSampleParameter.emplace(sampleBitWidth[i],
+                SampleParameter(SamplePolicy::SAMPLE_ABSTRACT_AND_CONCRETE,
+                    sampleAbstractAmount[i],
+                    sampleConcreteAmount[i]));
+        }
+    }
+
 };
 
 
@@ -40,16 +61,17 @@ void DataSampler::saveData(const std::filesystem::path& path, std::vector<Abstra
     assert (count>0);
     fout.write((char*)&count, sizeof(size_t));
 
-    size_t concreteValueLength = data[0].getConcreteValues().size();
-    fout.write((char*)&concreteValueLength, sizeof(size_t));
-    assert(concreteValueLength>0);
-
     uint64_t tmp;
     for (const auto& abstractValuePair : data) {
         for (const auto& apInt: abstractValuePair.getAbstractValue()) {
             tmp = apInt.getZExtValue();
             fout.write((char*)&tmp, sizeof(uint64_t));
         }
+
+        size_t concreteValueLength = abstractValuePair.getConcreteValues().size();
+        assert(concreteValueLength>0);
+        fout.write((char*)&concreteValueLength, sizeof(size_t));
+
         for (const auto& concreteValue: abstractValuePair.getConcreteValues()) {
             tmp=concreteValue.getZExtValue();
             fout.write((char*)&tmp, sizeof(uint64_t));
@@ -62,9 +84,7 @@ std::vector<AbstractConcreteValuePair> DataSampler::loadData(const std::filesyst
 
     size_t count, concreteValueLength;
     fin.read((char*)&count, sizeof(size_t));
-    fin.read((char*)&concreteValueLength, sizeof(size_t));
     assert(count>0);
-    assert(concreteValueLength>0);
 
     uint64_t tmp;
     APInt tmpAPInt(bitWidth, 0);
@@ -78,6 +98,8 @@ std::vector<AbstractConcreteValuePair> DataSampler::loadData(const std::filesyst
             fin.read((char*)&tmp, sizeof(uint64_t));
             tmpAbstractValue.emplace_back(bitWidth, tmp);
         }
+        fin.read((char*)&concreteValueLength, sizeof(size_t));
+        assert(concreteValueLength>0);
         for (size_t j=0;j<concreteValueLength;++j) {
             fin.read((char*)&tmp, sizeof(uint64_t));
             tmpConcreteValues.emplace_back(bitWidth, tmp);
@@ -133,6 +155,12 @@ std::vector<AbstractConcreteValuePair> DataSampler::sampleData(size_t bitWidth)c
         do {
             if (abstractDomainConstraint(abstractValue.data())) {
                 std::vector<ConcreteValue> concreteValues=sampleConcreteValues(abstractValue, bitWidth);
+                if (concreteValues.empty()) {
+                    abstractValue[0].dump();
+                    abstractValue[1].dump();
+                    llvm::errs()<<"Find abstract value without any concrete value\n";
+                    exit(0);
+                }
                 result.emplace_back(abstractValue, concreteValues);
             }
         }while (nextAbstractValue(abstractValue));
