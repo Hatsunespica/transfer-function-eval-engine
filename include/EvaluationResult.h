@@ -41,6 +41,8 @@ class EvaluationResult {
 public:
     EvaluationResult(size_t numberOfTransferFunctions=0) {
         transferFunctionResults.resize(numberOfTransferFunctions);
+        baseDistance=0;
+        baseUnsolvedCases=0;
     }
 
     void addIthResult(size_t i, bool isSound, bool isExact, bool isSolved, size_t distance, size_t soundDistance) {
