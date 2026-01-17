@@ -62,67 +62,109 @@ namespace Evaluation {
         llvm::errs()<<"\n";
     }
 
-    EvaluationResult EvaluationEngine::evaluateBatch() {
+    void dump(const AbstractDomain& absVal, size_t len) {
+        for (int i=0;i<len;++i) {
+            absVal[i].dump();
+        }
+        llvm::errs()<<"\n";
+    }
+
+    EvaluationResultOnBitWidth EvaluationEngine::evaluateBatch() {
         size_t numTransferFunctions = evaluationParameter.getTransferFunctionNames().size();
         size_t numBaseTransferFunctions = evaluationParameter.getBaseTransferFunctionNames().size();
         size_t arity = evaluationParameter.getTransferFunctionArity();
-        EvaluationResult result(numTransferFunctions);
+        EvaluationResultOnBitWidth finalResult;
         llvm::errs()<<"Only enumerate all bit width with arity "<<arity<<"\n";
         ConcreteOperation concreteOperation = evaluationBatch.getConcreteFunction();
         FromConcreteFunction fromConcrete = evaluationBatch.getFromConcrete();
         BinaryAbstractFunction meet = evaluationBatch.getMeet();
         BinaryAbstractFunction join = evaluationBatch.getJoin();
+        DistanceFunction distanceFunction = evaluationBatch.getDistance();
+        ContainsFunction contains = evaluationBatch.getContainsFunction();
+        llvm::APInt distanceResult, baseDistanceResult;
 
         auto& transferFunctions = evaluationBatch.getTransferFunctions();
         auto& baseTransferFunctions = evaluationBatch.getBaseTransferFunctions();
         for (size_t bitWidth :evaluationParameter.getEnumerateBitWidth()){
+            EvaluationResult result(numTransferFunctions);
             llvm::errs()<<"Evaluate current bitwidth "<<bitWidth<<"\n";
             auto data=dataSampler.getData(bitWidth);
             llvm::errs()<<"Data pair size: "<<data.size()<<"\n";
 
             std::vector<size_t> indices(arity, 0), limits(arity, data.size());
-            std::vector<AbstractValue> args;
-            std::vector<AbstractDomain> ptrArgs;
+            std::vector<AbstractValue> transferResult(numTransferFunctions, AbstractValue(arity));
+            std::vector<AbstractDomain> args;
 
             std::function<void(size_t, size_t)> argSetter = [&args, &data](size_t index, size_t innerIndex) {
-                args[index]=data[innerIndex].getAbstractValue();
+                args[index]=const_cast<AbstractDomain>(data[innerIndex].getAbstractValue().data());
             };
             for (int i=0;i<arity;++i) {
-                args.push_back(data[0].getAbstractValue());
-                ptrArgs.push_back(args[i].data());
+                args.push_back(const_cast<AbstractDomain>(data[0].getAbstractValue().data()));
             }
 
             AbstractValue bestResult = computeBestAbstractValue(data, indices, concreteOperation, join, fromConcrete);
             AbstractValue baseResult(arity), tmpResult(arity);
 
-
-            baseTransferFunctions[0](ptrArgs.data(), baseResult.data());
-            for (int i=1;i<baseTransferFunctions.size();++i) {
-                baseTransferFunctions[i](ptrArgs.data(), tmpResult.data());
+            baseTransferFunctions[0](args.data(), baseResult.data());
+            for (int i=1;i<numBaseTransferFunctions;++i) {
+                baseTransferFunctions[i](args.data(), tmpResult.data());
                 meet(baseResult.data(), tmpResult.data(), baseResult.data());
             }
-            for (int i=0;i<transferFunctions.size();++i) {
+            distanceFunction(baseResult.data(), bestResult.data(),&baseDistanceResult);
+            unsigned baseDistance = distanceResult.getZExtValue();
+            bool solved = (baseResult == bestResult);
+            result.addBaseResult(solved, baseDistance);
+
+            for (int i=0;i<numTransferFunctions;++i) {
+                transferFunctions[i](args.data(),transferResult[i].data());
+                meet(baseResult.data(), transferResult[i].data(), transferResult[i].data());
+            }
+            for (int i=0;i<numTransferFunctions;++i) {
                 // update result for all transfer functions
+                bool sound = contains(transferResult[i].data(), bestResult.data());
+                bool exact = (transferResult[i] == bestResult);
+                distanceFunction(transferResult[i].data(), bestResult.data(), &distanceResult);
+                unsigned distance = distanceResult.getZExtValue();
+                unsigned soundDistance = sound? distance : baseDistance;
+                result.addIthResult(i, sound,exact,solved, distance, soundDistance);
             }
 
             int cnt=1;
             while (nextIndices(indices, limits, argSetter)) {
                 bestResult = computeBestAbstractValue(data, indices, concreteOperation, join, fromConcrete);
-                for (int i=0;i<arity;++i) {
-                    ptrArgs[i] = args[i].data();
-                }
 
-                baseTransferFunctions[0](ptrArgs.data(), baseResult.data());
+                baseTransferFunctions[0](args.data(), baseResult.data());
                 for (int i=1;i<baseTransferFunctions.size();++i) {
-                    baseTransferFunctions[i](ptrArgs.data(), tmpResult.data());
+                    baseTransferFunctions[i](args.data(), tmpResult.data());
                     meet(baseResult.data(), tmpResult.data(), baseResult.data());
+                }
+                distanceFunction(baseResult.data(), bestResult.data(),&baseDistanceResult);
+                unsigned baseDistance = distanceResult.getZExtValue();
+                bool solved = (baseResult == bestResult);
+                result.addBaseResult(solved, baseDistance);
+
+                for (int i=0;i<numTransferFunctions;++i) {
+                    //llvm::errs()<<"<-->\n";
+                    //dump(args[0],2);
+                    //dump(args[1],2);
+                    //dump(transferResult[i]);
+                    //llvm::errs()<<"<-->\n";
+                    transferFunctions[i](args.data(),transferResult[i].data());
+                    meet(baseResult.data(), transferResult[i].data(), transferResult[i].data());
                 }
                 for (int i=0;i<transferFunctions.size();++i) {
                     // update result for all transfer functions
+                    bool sound = contains(transferResult[i].data(), bestResult.data());
+                    bool exact = (transferResult[i] == bestResult);
+                    distanceFunction(transferResult[i].data(), bestResult.data(), &distanceResult);
+                    unsigned distance = distanceResult.getZExtValue();
+                    unsigned soundDistance = sound? distance : baseDistance;
+                    result.addIthResult(i, sound,exact,solved, distance, soundDistance);
                 }
                 ++cnt;
             }
+            finalResult.emplace(bitWidth, result);
         }
-        return result;
+        return finalResult;
     }
 }

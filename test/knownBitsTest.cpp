@@ -21,11 +21,16 @@ extern "C" bool  getInstanceConstraint(APInt* abstractDomain, APInt* concreteVal
     return cmp1 && cmp2;
 }
 
+extern "C" bool contains(APInt* abstractDomain1, APInt* abstractDomain2) {
+    return ((abstractDomain1[0] | abstractDomain2[0]) ==abstractDomain2[0]) &&
+        ((abstractDomain1[1] | abstractDomain2[1]) ==abstractDomain2[1]);
+}
+
 extern "C" void getTop(APInt* abstractDomain, APInt* result) {
     APInt zero = APInt::getZero(abstractDomain[0].getBitWidth());
     APInt allOnes = APInt::getAllOnes(abstractDomain[0].getBitWidth());
     result[0] = zero;
-    result[1]= allOnes;
+    result[1]= zero;
 }
 
 extern "C" void meet(APInt* abstractDomain1, APInt* abstractDomain2, APInt* result) {

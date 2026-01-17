@@ -151,7 +151,8 @@ int main(int argc, char** argv) {
         SampleConcreteAmount);
     EvaluationBatch evaluationBatch(*jitModulePtr, evaluationParameter);
     EvaluationEngine evaluationEngine(evaluationParameter, evaluationBatch);
-    evaluationEngine.evaluateBatch();
+    auto result = evaluationEngine.evaluateBatch();
+    printEvaluationResultOnAllBitWidth(result);
 
   return 0;
 }

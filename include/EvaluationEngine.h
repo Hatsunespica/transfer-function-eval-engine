@@ -23,7 +23,7 @@ class EvaluationEngine {
 
 public:
     EvaluationEngine(const EvaluationParameter& evaluationParameter, const EvaluationBatch& evaluationBatch);
-    EvaluationResult evaluateBatch();
+    EvaluationResultOnBitWidth evaluateBatch();
 };
 
 }

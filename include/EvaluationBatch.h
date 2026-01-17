@@ -24,6 +24,9 @@ class EvaluationBatch {
     const static inline std::string FROM_CONCRETE_NAME = "fromConcrete";
     FromConcreteFunction fromConcrete;
 
+    const static inline std::string CONTAINS_FUNCTION_NAME = "contains";
+    ContainsFunction containsFunction;
+
     const static inline std::string DISTANCE_NAME = "distance";
     DistanceFunction distance;
 
@@ -74,6 +77,10 @@ public:
 
     const DistanceFunction& getDistance() const {
         return distance;
+    }
+
+    const ContainsFunction& getContainsFunction() const {
+        return containsFunction;
     }
 
     const AbstractDomainConstraint& getAbstractDomainConstraint() const {
