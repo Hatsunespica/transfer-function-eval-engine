@@ -69,19 +69,3 @@ extern "C" void test(APInt** args, APInt* result) {
 extern "C" void baseTest(APInt** args, APInt* result) {
     getTop(args[0],result);
 }
-
-
-extern "C" void getVector_C(APInt* a,
-                           APInt* b,
-                           APInt* out) {
-    out[0] = a[0];
-    out[1] = b[0];
-}
-
-
-
-extern "C" void getKB(APInt** args,
-                           APInt* out) {
-    out[0] = args[0][0];
-    out[1] = args[1][0];
-}
