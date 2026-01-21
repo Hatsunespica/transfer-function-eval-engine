@@ -111,7 +111,16 @@ llvm::cl::list<std::string> JITConfig(
         llvm::cl::value_desc("option")
 );
 
+#include "llvm/Support/KnownBits.h"
+
 int main(int argc, char** argv) {
+    llvm::KnownBits a(4), b(4);
+    b.One |= llvm::APInt(4, 1);
+    a.dump();
+    b.dump();
+    llvm::KnownBits::add(a,a).dump();
+    (a&(llvm::KnownBits::add(a, b))).dump();
+    exit(0);
   // Parse the command line
   cl::ParseCommandLineOptions(argc, argv, "JIT + Evaluator + Aggregator Tool\n");
   bool fromStdin=!SourceCode.empty();
