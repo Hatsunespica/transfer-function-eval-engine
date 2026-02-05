@@ -111,7 +111,7 @@ namespace Evaluation {
                 meet(baseResult.data(), tmpResult.data(), baseResult.data());
             }
             distanceFunction(baseResult.data(), bestResult.data(),&baseDistanceResult);
-            unsigned baseDistance = distanceResult.getZExtValue();
+            unsigned baseDistance = baseDistanceResult.getZExtValue();
             bool solved = (baseResult == bestResult);
             result.addBaseResult(solved, baseDistance);
 
@@ -139,16 +139,11 @@ namespace Evaluation {
                     meet(baseResult.data(), tmpResult.data(), baseResult.data());
                 }
                 distanceFunction(baseResult.data(), bestResult.data(),&baseDistanceResult);
-                unsigned baseDistance = distanceResult.getZExtValue();
-                bool solved = (baseResult == bestResult);
+                baseDistance = baseDistanceResult.getZExtValue();
+                solved = (baseResult == bestResult);
                 result.addBaseResult(solved, baseDistance);
 
                 for (int i=0;i<numTransferFunctions;++i) {
-                    //llvm::errs()<<"<-->\n";
-                    //dump(args[0],2);
-                    //dump(args[1],2);
-                    //dump(transferResult[i]);
-                    //llvm::errs()<<"<-->\n";
                     transferFunctions[i](args.data(),transferResult[i].data());
                     meet(baseResult.data(), transferResult[i].data(), transferResult[i].data());
                 }

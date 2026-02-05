@@ -54,10 +54,10 @@ public:
         transferFunctionResults[i].addResult(isSound, isExact, isSolved, distance, soundDistance);
     }
 
-    void addBaseResult(bool solved, size_t baseDiatance) {
+    void addBaseResult(bool solved, size_t baseDistance) {
         baseUnsolvedCases += solved? 0 : 1;
         numCases += 1;
-        this->baseDistance += baseDiatance;
+        this->baseDistance += baseDistance;
     }
 
     void print()const;
