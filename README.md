@@ -1,6 +1,12 @@
 # transfer-function-eval-engine
 This repo is used for evaluating C++ transfer functions generated from our xdsl-smt synthesizer. 
 
+## To find JIT include path
+```
+clang -E -x c++ -V
+```
+should print out the search path for clang and use it to update 
+`include/HEADER_INCLUDE_PATH.h`
 
 ## Installation and Test
 ```
