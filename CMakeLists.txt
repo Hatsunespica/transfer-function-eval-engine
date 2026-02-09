@@ -7,6 +7,7 @@ find_package(LLVM REQUIRED CONFIG)
 find_package(Clang REQUIRED CONFIG)
 
 include_directories(include)
+include_directories(TFImpl)
 include_directories(${LLVM_INCLUDE_DIRS} ${CLANG_INCLUDE_DIRS})
 add_executable(eval-engine
         src/main.cpp
