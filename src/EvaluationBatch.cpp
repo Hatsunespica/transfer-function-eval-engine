@@ -1,6 +1,16 @@
 #include "EvaluationBatch.h"
+#include "llvm/Support/Error.h"
 
 namespace Evaluation {
+
+bool DEFAULT_CONCRETE_OP_CONSTRAINT(ConcreteValueVector){
+    return true;
+}
+
+bool DEFAULT_ABSTRACT_OP_CONSTRAINT(AbstractDomainVector){
+    return true;
+}
+
 
 EvaluationBatch::EvaluationBatch(llvm::orc::LLJIT& jitModule,
     const EvaluationParameter& parameters) {
@@ -14,6 +24,23 @@ EvaluationBatch::EvaluationBatch(llvm::orc::LLJIT& jitModule,
     containsFunction = ExitOnErr(jitModule.lookup(CONTAINS_FUNCTION_NAME)).toPtr<ContainsFunction>();
     meet = ExitOnErr(jitModule.lookup(MEET_NAME)).toPtr<BinaryAbstractFunction>();
     join = ExitOnErr(jitModule.lookup(JOIN_NAME)).toPtr<BinaryAbstractFunction>();
+
+    auto concreteOpConstraintResult = jitModule.lookup(CONCRETE_OP_CONSTRAINT);
+
+    if(auto E = concreteOpConstraintResult.takeError()){
+        concreteOpConstraint = DEFAULT_CONCRETE_OP_CONSTRAINT;
+        llvm::consumeError(std::move(E));
+    }else{
+        concreteOpConstraint = concreteOpConstraintResult.get().toPtr<ConcreteOpConstraint>();
+    }
+
+    auto abstractOpConstraintResult =  jitModule.lookup(ABSTRACT_OP_CONSTRAINT);
+    if(auto E = abstractOpConstraintResult.takeError()){
+        abstractOpConstraint = DEFAULT_ABSTRACT_OP_CONSTRAINT;
+        llvm::consumeError(std::move(E));
+    }else{
+        abstractOpConstraint = abstractOpConstraintResult.get().toPtr<AbstractOpConstraint>();
+    }
 
 
     concreteFunction = ExitOnErr(jitModule.lookup(CONCRETE_FUNCTION_NAME)).toPtr<ConcreteOperation>();

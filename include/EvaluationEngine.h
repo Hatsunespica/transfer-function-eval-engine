@@ -19,7 +19,7 @@ class EvaluationEngine {
 
     AbstractValue computeBestAbstractValue(const std::vector<AbstractConcreteValuePair>& abstractConcreteValuePairs,
         const std::vector<size_t>& indices, ConcreteOperation concreteOperation, BinaryAbstractFunction join,
-        FromConcreteFunction fromConcreteFunction);
+        FromConcreteFunction fromConcreteFunction, ConcreteOpConstraint opConstraint, bool& hasBestValue);
 
 public:
     EvaluationEngine(const EvaluationParameter& evaluationParameter, const EvaluationBatch& evaluationBatch);

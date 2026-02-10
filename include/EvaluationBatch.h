@@ -36,6 +36,13 @@ class EvaluationBatch {
     const static inline std::string INSTANCE_CONSTRAINT_NAME = "getInstanceConstraint";
     InstanceConstraint instanceConstraint;
 
+    const static inline std::string CONCRETE_OP_CONSTRAINT = "op_constraint";
+    ConcreteOpConstraint concreteOpConstraint;
+
+    const static inline std::string ABSTRACT_OP_CONSTRAINT = "abs_op_constraint";
+    AbstractOpConstraint abstractOpConstraint;
+
+
     llvm::ExitOnError ExitOnErr;
 
 public:
@@ -89,6 +96,14 @@ public:
 
     const InstanceConstraint& getInstanceConstraint() const {
         return instanceConstraint;
+    }
+
+    const ConcreteOpConstraint& getConcreteOpConstraint() const{
+        return concreteOpConstraint;
+    }
+
+    const AbstractOpConstraint& getAbstractOpConstraint() const{
+        return abstractOpConstraint;
     }
 
 };

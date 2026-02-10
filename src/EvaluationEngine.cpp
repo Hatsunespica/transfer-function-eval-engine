@@ -31,7 +31,7 @@ namespace Evaluation {
 
     AbstractValue EvaluationEngine::computeBestAbstractValue(const std::vector<AbstractConcreteValuePair>& abstractConcreteValuePairs,
         const std::vector<size_t>& indices, ConcreteOperation concreteOperation, BinaryAbstractFunction join,
-        FromConcreteFunction fromConcreteFunction) {
+        FromConcreteFunction fromConcreteFunction, ConcreteOpConstraint concreteOpConstraint, bool& hasBestValue) {
         std::vector<size_t> innerIndices(indices.size(), 0);
         std::vector<llvm::APInt> args;
         llvm::APInt concreteResult;
@@ -44,13 +44,24 @@ namespace Evaluation {
             args[index] = abstractConcreteValuePairs[indices[index]].getConcreteValues()[innerIndex];
         };
 
-        concreteOperation(args.data(),&concreteResult);
         AbstractValue result(evaluationParameter.getAbstractDomainLength()), tmpResult(evaluationParameter.getAbstractDomainLength());
-        fromConcreteFunction(&concreteResult, result.data());
-        while (nextIndices(innerIndices, limits, argSetter)) {
+        hasBestValue=false;
+        if(concreteOpConstraint(args.data())){
             concreteOperation(args.data(),&concreteResult);
-            fromConcreteFunction(&concreteResult, tmpResult.data());
-            join(result.data(), tmpResult.data(), result.data());
+            fromConcreteFunction(&concreteResult, result.data());
+            hasBestValue=true;
+        }
+        while (nextIndices(innerIndices, limits, argSetter)) {
+            if(concreteOpConstraint(args.data())){
+                concreteOperation(args.data(),&concreteResult);
+                if(hasBestValue){
+                    fromConcreteFunction(&concreteResult, tmpResult.data());
+                    join(result.data(), tmpResult.data(), result.data());
+                }else{
+                    fromConcreteFunction(&concreteResult, result.data());
+                    hasBestValue=true;
+                }
+            }
         }
         return result;
     }
@@ -81,6 +92,7 @@ namespace Evaluation {
         BinaryAbstractFunction join = evaluationBatch.getJoin();
         DistanceFunction distanceFunction = evaluationBatch.getDistance();
         ContainsFunction contains = evaluationBatch.getContainsFunction();
+        ConcreteOpConstraint concreteOpConstraint = evaluationBatch.getConcreteOpConstraint();
         llvm::APInt distanceResult, baseDistanceResult;
 
         auto& transferFunctions = evaluationBatch.getTransferFunctions();
@@ -102,39 +114,15 @@ namespace Evaluation {
                 args.push_back(const_cast<AbstractDomain>(data[0].getAbstractValue().data()));
             }
 
-            AbstractValue bestResult = computeBestAbstractValue(data, indices, concreteOperation, join, fromConcrete);
             AbstractValue baseResult(arity), tmpResult(arity);
-
-            baseTransferFunctions[0](args.data(), baseResult.data());
-            for (int i=1;i<numBaseTransferFunctions;++i) {
-                baseTransferFunctions[i](args.data(), tmpResult.data());
-                meet(baseResult.data(), tmpResult.data(), baseResult.data());
-            }
-            distanceFunction(baseResult.data(), bestResult.data(),&baseDistanceResult);
-            unsigned baseDistance = baseDistanceResult.getZExtValue();
-            bool solved = (baseResult == bestResult);
-            result.addBaseResult(solved, baseDistance);
-
-            for (int i=0;i<numTransferFunctions;++i) {
-                transferFunctions[i](args.data(),transferResult[i].data());
-                meet(baseResult.data(), transferResult[i].data(), transferResult[i].data());
-            }
-            for (int i=0;i<numTransferFunctions;++i) {
-                // update result for all transfer functions
-                bool sound = contains(transferResult[i].data(), bestResult.data());
-                bool exact = (transferResult[i] == bestResult);
-                distanceFunction(transferResult[i].data(), bestResult.data(), &distanceResult);
-                unsigned distance = distanceResult.getZExtValue();
-                unsigned soundDistance = sound? distance : baseDistance;
-                result.addIthResult(i, sound,exact,solved, distance, soundDistance);
-            }
-
-            int cnt=1;
-            while (nextIndices(indices, limits, argSetter)) {
-                bestResult = computeBestAbstractValue(data, indices, concreteOperation, join, fromConcrete);
-
+            bool hasBestValue;
+            AbstractValue bestResult = computeBestAbstractValue(data, indices,
+                                                                concreteOperation, join, fromConcrete, concreteOpConstraint, hasBestValue);
+            unsigned baseDistance;
+            bool solved;
+            if(hasBestValue){
                 baseTransferFunctions[0](args.data(), baseResult.data());
-                for (int i=1;i<baseTransferFunctions.size();++i) {
+                for (int i=1;i<numBaseTransferFunctions;++i) {
                     baseTransferFunctions[i](args.data(), tmpResult.data());
                     meet(baseResult.data(), tmpResult.data(), baseResult.data());
                 }
@@ -147,7 +135,7 @@ namespace Evaluation {
                     transferFunctions[i](args.data(),transferResult[i].data());
                     meet(baseResult.data(), transferResult[i].data(), transferResult[i].data());
                 }
-                for (int i=0;i<transferFunctions.size();++i) {
+                for (int i=0;i<numTransferFunctions;++i) {
                     // update result for all transfer functions
                     bool sound = contains(transferResult[i].data(), bestResult.data());
                     bool exact = (transferResult[i] == bestResult);
@@ -156,7 +144,38 @@ namespace Evaluation {
                     unsigned soundDistance = sound? distance : baseDistance;
                     result.addIthResult(i, sound,exact,solved, distance, soundDistance);
                 }
-                ++cnt;
+            }
+
+
+            int cnt=hasBestValue;
+            while (nextIndices(indices, limits, argSetter)) {
+                bestResult = computeBestAbstractValue(data, indices, concreteOperation, join, fromConcrete, concreteOpConstraint, hasBestValue);
+                if(hasBestValue){
+                    baseTransferFunctions[0](args.data(), baseResult.data());
+                    for (int i=1;i<baseTransferFunctions.size();++i) {
+                        baseTransferFunctions[i](args.data(), tmpResult.data());
+                        meet(baseResult.data(), tmpResult.data(), baseResult.data());
+                    }
+                    distanceFunction(baseResult.data(), bestResult.data(),&baseDistanceResult);
+                    baseDistance = baseDistanceResult.getZExtValue();
+                    solved = (baseResult == bestResult);
+                    result.addBaseResult(solved, baseDistance);
+
+                    for (int i=0;i<numTransferFunctions;++i) {
+                        transferFunctions[i](args.data(),transferResult[i].data());
+                        meet(baseResult.data(), transferResult[i].data(), transferResult[i].data());
+                    }
+                    for (int i=0;i<transferFunctions.size();++i) {
+                        // update result for all transfer functions
+                        bool sound = contains(transferResult[i].data(), bestResult.data());
+                        bool exact = (transferResult[i] == bestResult);
+                        distanceFunction(transferResult[i].data(), bestResult.data(), &distanceResult);
+                        unsigned distance = distanceResult.getZExtValue();
+                        unsigned soundDistance = sound? distance : baseDistance;
+                        result.addIthResult(i, sound,exact,solved, distance, soundDistance);
+                    }
+                    ++cnt;
+                }
             }
             finalResult.emplace(bitWidth, result);
         }
