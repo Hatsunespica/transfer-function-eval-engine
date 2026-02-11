@@ -3,12 +3,12 @@
 
 namespace Evaluation {
 
-bool DEFAULT_CONCRETE_OP_CONSTRAINT(ConcreteValueVector){
-    return true;
+void DEFAULT_CONCRETE_OP_CONSTRAINT(ConcreteValueVector, int* result){
+    result[0]=1;
 }
 
-bool DEFAULT_ABSTRACT_OP_CONSTRAINT(AbstractDomainVector){
-    return true;
+void DEFAULT_ABSTRACT_OP_CONSTRAINT(AbstractDomainVector, int* result){
+    result[0]=1;
 }
 
 

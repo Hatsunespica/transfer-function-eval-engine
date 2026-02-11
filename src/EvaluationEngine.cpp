@@ -46,13 +46,16 @@ namespace Evaluation {
 
         AbstractValue result(evaluationParameter.getAbstractDomainLength()), tmpResult(evaluationParameter.getAbstractDomainLength());
         hasBestValue=false;
-        if(concreteOpConstraint(args.data())){
+        int opConstraintResult;
+        concreteOpConstraint(args.data(), &opConstraintResult);
+        if(opConstraintResult){
             concreteOperation(args.data(),&concreteResult);
             fromConcreteFunction(&concreteResult, result.data());
             hasBestValue=true;
         }
         while (nextIndices(innerIndices, limits, argSetter)) {
-            if(concreteOpConstraint(args.data())){
+            concreteOpConstraint(args.data(), &opConstraintResult);
+            if(opConstraintResult){
                 concreteOperation(args.data(),&concreteResult);
                 if(hasBestValue){
                     fromConcreteFunction(&concreteResult, tmpResult.data());
@@ -137,7 +140,8 @@ namespace Evaluation {
                 }
                 for (int i=0;i<numTransferFunctions;++i) {
                     // update result for all transfer functions
-                    bool sound = contains(transferResult[i].data(), bestResult.data());
+                    int sound;
+                    contains(transferResult[i].data(), bestResult.data(), &sound);
                     bool exact = (transferResult[i] == bestResult);
                     distanceFunction(transferResult[i].data(), bestResult.data(), &distanceResult);
                     unsigned distance = distanceResult.getZExtValue();
@@ -167,7 +171,8 @@ namespace Evaluation {
                     }
                     for (int i=0;i<transferFunctions.size();++i) {
                         // update result for all transfer functions
-                        bool sound = contains(transferResult[i].data(), bestResult.data());
+                        int sound;
+                        contains(transferResult[i].data(), bestResult.data(), &sound);
                         bool exact = (transferResult[i] == bestResult);
                         distanceFunction(transferResult[i].data(), bestResult.data(), &distanceResult);
                         unsigned distance = distanceResult.getZExtValue();

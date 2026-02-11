@@ -22,11 +22,11 @@ namespace Evaluation {
     using UnaryAbstractFunction      = void(*)(AbstractDomain, AbstractDomain);
     // The only argument is used for obtaining bitwidth
     using ConstantAbstractFunction   = void(*)(AbstractDomain, AbstractDomain);
-    using AbstractDomainConstraint   = bool(*)(AbstractDomain);
-    using InstanceConstraint         = bool(*)(AbstractDomain, ConcreteDomain);
-    using ContainsFunction = bool(*)(AbstractDomain, AbstractDomain);
-    using ConcreteOpConstraint = bool(*)(ConcreteValueVector);
-    using AbstractOpConstraint = bool(*)(AbstractDomainVector);
+    using AbstractDomainConstraint   = void(*)(AbstractDomain, int*);
+    using InstanceConstraint         = void(*)(AbstractDomain, ConcreteDomain,int*);
+    using ContainsFunction = void(*)(AbstractDomain, AbstractDomain,int*);
+    using ConcreteOpConstraint = void(*)(ConcreteValueVector,int*);
+    using AbstractOpConstraint = void(*)(AbstractDomainVector,int*);
     using FromConcreteFunction = void(*)(ConcreteDomain, AbstractDomain);
     using DistanceFunction = void(*)(AbstractDomain, AbstractDomain, APInt*);
     using ConcreteOperation          = void(*)(ConcreteDomainVector, ConcreteDomain);

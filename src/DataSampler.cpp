@@ -133,12 +133,15 @@ bool DataSampler::nextAbstractValue(AbstractValue& abstractValue)const {
 std::vector<ConcreteValue> DataSampler::sampleConcreteValues(AbstractValue& abstractValue, size_t bitWidth)const {
     std::vector<ConcreteValue> result;
     APInt upperBound=APInt::getAllOnes(bitWidth);
+    int isValidInstance;
     for (APInt value(bitWidth, 0);value!=upperBound;value+=1) {
-        if (instanceConstraint(abstractValue.data(), &value)) {
+        instanceConstraint(abstractValue.data(), &value, &isValidInstance);
+        if (isValidInstance) {
             result.push_back(value);
         }
     }
-    if (instanceConstraint(abstractValue.data(), &upperBound)) {
+    instanceConstraint(abstractValue.data(), &upperBound, &isValidInstance);
+    if (isValidInstance) {
         result.push_back(upperBound);
     }
     return result;
@@ -150,10 +153,12 @@ std::vector<AbstractConcreteValuePair> DataSampler::sampleData(size_t bitWidth)c
     const SampleParameter& sampleParameter = sampleParameterIt->second;
     std::vector<AbstractConcreteValuePair> result;
     std::vector<ConcreteValue> tmpValues(maxOperationLength);
+    int isValidAbstractDomain;
     if (sampleParameter.getSamplePolicy() == SamplePolicy::FULL_ENUMERATION) {
         AbstractValue abstractValue = initAbstractValue(bitWidth);
         do {
-            if (abstractDomainConstraint(abstractValue.data())) {
+            abstractDomainConstraint(abstractValue.data(),&isValidAbstractDomain);
+            if (isValidAbstractDomain) {
                 std::vector<ConcreteValue> concreteValues=sampleConcreteValues(abstractValue, bitWidth);
                 if (concreteValues.empty()) {
                     abstractValue[0].dump();
