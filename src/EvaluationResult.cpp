@@ -13,7 +13,7 @@ namespace Evaluation {
 
     void EvaluationResult::print() const {
         llvm::errs()<<"Total cases: "<<numCases<<"\n";
-        llvm::errs()<<"Total unsolved cases:"<<baseUnsolvedCases<<"\n";
+        llvm::errs()<<"Total unsolved cases: "<<baseUnsolvedCases<<"\n";
         llvm::errs()<<"Base distance: "<<baseDistance<<"\n";
         for (const auto& result:transferFunctionResults) {
             result.print();
