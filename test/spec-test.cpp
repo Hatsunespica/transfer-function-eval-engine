@@ -1,5 +1,4 @@
 #include "llvm/ADT/APInt.h"
-#include <vector>
 
 using namespace llvm;
 using namespace std;

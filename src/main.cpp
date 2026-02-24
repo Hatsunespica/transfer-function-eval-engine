@@ -2,6 +2,7 @@
 #include "JIT.h"
 #include "llvm/Support/raw_ostream.h"
 #include "EvaluationEngine.h"
+#include <iostream>
 
 
 using namespace llvm;
@@ -18,6 +19,12 @@ cl::opt<std::string> SourceCode(
         cl::desc("Specify input source code"),
         cl::init(""),
         cl::value_desc("source code")
+);
+
+cl::opt<bool> ReadFromStdin(
+        "stdin",
+        cl::desc("Read source code from stdin"),
+        cl::init(false)
 );
 
 cl::opt<std::string> DataCachePath(
@@ -114,11 +121,11 @@ llvm::cl::list<std::string> JITConfig(
 int main(int argc, char** argv) {
   // Parse the command line
   cl::ParseCommandLineOptions(argc, argv, "JIT + Evaluator + Aggregator Tool\n");
-  bool fromStdin=!SourceCode.empty();
+  bool fromSource=!SourceCode.empty();
 
   // Validate input: user must provide either file or stdin
-  if (InputFile.empty() == SourceCode.empty()) {
-    errs() << "Error: Must specify --file=<file> or --source\n";
+  if (InputFile.empty() == SourceCode.empty() && !ReadFromStdin) {
+    errs() << "Error: Must specify --file=<file> or --source or --stdin\n";
     return 1;
   }
 
@@ -126,7 +133,7 @@ int main(int argc, char** argv) {
   outs() << "domain: " << domain << "\n";
   if (!InputFile.empty())
     outs() << "Input file: " << InputFile << "\n";
-  if (fromStdin)
+  if (ReadFromStdin || fromSource)
     outs() << "Reading source from stdin\n";
 
   outs() << "Function names:\n";
@@ -137,6 +144,13 @@ int main(int argc, char** argv) {
   for (const auto &cfg : JITConfig) {
     outs() << "  " << cfg << "\n";
   }
+
+    if (ReadFromStdin) {
+        SourceCode = std::string(
+                std::istreambuf_iterator<char>(std::cin),
+                std::istreambuf_iterator<char>()
+        );
+    }
 
     // Here you would pass InputFile/stdin, FunctionNames, and ID
     // to your JIT / Evaluator / Aggregator
