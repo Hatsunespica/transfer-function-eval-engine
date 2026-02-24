@@ -45,7 +45,7 @@ cl::list<std::string> TransferFunctionNames(
 cl::list<std::string> BaseTransferFunctionNames(
         "base-transfer-function",
         cl::desc("Base transfer Function names to process"),
-        cl::OneOrMore,
+        cl::ZeroOrMore,
         cl::CommaSeparated,
         cl::value_desc("base transfer function names")
 );

@@ -101,6 +101,7 @@ namespace Evaluation {
 
         auto& transferFunctions = evaluationBatch.getTransferFunctions();
         auto& baseTransferFunctions = evaluationBatch.getBaseTransferFunctions();
+        bool baseTransferFunctionsNonEmpty = !baseTransferFunctions.empty();
         for (size_t bitWidth :evaluationParameter.getEnumerateBitWidth()){
             EvaluationResult result(numTransferFunctions);
             llvm::errs()<<"Evaluate current bitwidth "<<bitWidth<<"\n";
@@ -128,19 +129,25 @@ namespace Evaluation {
                 bestResult = computeBestAbstractValue(data, indices,
                                                       concreteOperation, join, fromConcrete, concreteOpConstraint, hasBestValue);
                 if(hasBestValue){
-                    baseTransferFunctions[0](args.data(), baseResult.data());
-                    for (int i=1;i<numBaseTransferFunctions;++i) {
-                        baseTransferFunctions[i](args.data(), tmpResult.data());
-                        meet(baseResult.data(), tmpResult.data(), baseResult.data());
+                    if(baseTransferFunctionsNonEmpty){
+                        baseTransferFunctions[0](args.data(), baseResult.data());
+                        for (int i=1;i<numBaseTransferFunctions;++i) {
+                            baseTransferFunctions[i](args.data(), tmpResult.data());
+                            meet(baseResult.data(), tmpResult.data(), baseResult.data());
+                        }
+                        distanceFunction(baseResult.data(), bestResult.data(),&baseDistanceResult);
+                        baseDistance = baseDistanceResult.getZExtValue();
+                        solved = (baseResult == bestResult);
+                        result.addBaseResult(solved, baseDistance);
+                    }else{
+                        result.addBaseResult(true, 0);
                     }
-                    distanceFunction(baseResult.data(), bestResult.data(),&baseDistanceResult);
-                    baseDistance = baseDistanceResult.getZExtValue();
-                    solved = (baseResult == bestResult);
-                    result.addBaseResult(solved, baseDistance);
 
                     for (int i=0;i<numTransferFunctions;++i) {
                         transferFunctions[i](args.data(),transferResult[i].data());
-                        meet(baseResult.data(), transferResult[i].data(), transferResult[i].data());
+                        if(baseTransferFunctionsNonEmpty){
+                            meet(baseResult.data(), transferResult[i].data(), transferResult[i].data());
+                        }
                     }
                     for (int i=0;i<numTransferFunctions;++i) {
                         // update result for all transfer functions
