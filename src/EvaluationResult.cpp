@@ -3,30 +3,30 @@
 
 namespace Evaluation {
     void TransferFunctionResult::print() const {
-        llvm::errs() << "soundCases = " << soundCases << "\n";
-        llvm::errs() << "exactCases = " << exactCases << "\n";
-        llvm::errs() << "unsolvedExactCases = " << unsolvedExactCases << "\n";
-        llvm::errs() << "distance = " << distance << "\n";
-        llvm::errs() << "soundDistance = " << soundDistance << "\n";
+        llvm::outs() << "soundCases = " << soundCases << "\n";
+        llvm::outs() << "exactCases = " << exactCases << "\n";
+        llvm::outs() << "unsolvedExactCases = " << unsolvedExactCases << "\n";
+        llvm::outs() << "distance = " << distance << "\n";
+        llvm::outs() << "soundDistance = " << soundDistance << "\n";
 
     }
 
     void EvaluationResult::print() const {
-        llvm::errs()<<"Total cases: "<<numCases<<"\n";
-        llvm::errs()<<"Total unsolved cases: "<<baseUnsolvedCases<<"\n";
-        llvm::errs()<<"Base distance: "<<baseDistance<<"\n";
+        llvm::outs()<<"Total cases: "<<numCases<<"\n";
+        llvm::outs()<<"Total unsolved cases: "<<baseUnsolvedCases<<"\n";
+        llvm::outs()<<"Base distance: "<<baseDistance<<"\n";
         for (const auto& result:transferFunctionResults) {
             result.print();
-            llvm::errs()<<"------\n";
+            llvm::outs()<<"------\n";
         }
     }
 
     void printEvaluationResultOnAllBitWidth(const EvaluationResultOnBitWidth& result) {
-       llvm::errs()<<"print result\n";
+       llvm::outs()<<"print result\n";
         for (const auto& it : result) {
-            llvm::errs()<<"BitWidth: "<<it.first<<"\n";
+            llvm::outs()<<"BitWidth: "<<it.first<<"\n";
             it.second.print();
-            llvm::errs()<<"=======\n";
+            llvm::outs()<<"=======\n";
         }
     }
 }
