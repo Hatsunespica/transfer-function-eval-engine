@@ -140,14 +140,12 @@ std::unique_ptr<llvm::orc::LLJIT> createJITModule(const std::string& fileName,
             clang::InputKind(clang::Language::CXX)
         );
     }
-    ci->getCodeGenOpts().DisableFree = false;
-    ci->getFrontendOpts().DisableFree = false;
+    //ci->getCodeGenOpts().OptimizationLevel = 2;
+    //ci->getCodeGenOpts().OptimizeSize = 0;
 
-    LLVMInitializeX86AsmParser();
-    LLVMInitializeX86AsmPrinter();
-    LLVMInitializeX86Target();
-    LLVMInitializeX86TargetInfo();
-    LLVMInitializeX86TargetMC();
+    //ci->getCodeGenOpts().DisableFree = false;
+    //ci->getFrontendOpts().DisableFree = false;
+
 
     std::unique_ptr<clang::EmitLLVMOnlyAction> action =
             std::make_unique<clang::EmitLLVMOnlyAction>();
