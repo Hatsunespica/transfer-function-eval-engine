@@ -29,17 +29,21 @@ EvaluationBatch::EvaluationBatch(llvm::orc::LLJIT& jitModule,
 
     if(auto E = concreteOpConstraintResult.takeError()){
         concreteOpConstraint = DEFAULT_CONCRETE_OP_CONSTRAINT;
+        trivialConcreteOpConstraint = true;
         llvm::consumeError(std::move(E));
     }else{
         concreteOpConstraint = concreteOpConstraintResult.get().toPtr<ConcreteOpConstraint>();
+        trivialConcreteOpConstraint = false;
     }
 
     auto abstractOpConstraintResult =  jitModule.lookup(ABSTRACT_OP_CONSTRAINT);
     if(auto E = abstractOpConstraintResult.takeError()){
         abstractOpConstraint = DEFAULT_ABSTRACT_OP_CONSTRAINT;
+        trivialAbstractOpConstraint = true;
         llvm::consumeError(std::move(E));
     }else{
         abstractOpConstraint = abstractOpConstraintResult.get().toPtr<AbstractOpConstraint>();
+        trivialAbstractOpConstraint = false;
     }
 
 

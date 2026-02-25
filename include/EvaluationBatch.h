@@ -38,9 +38,11 @@ class EvaluationBatch {
 
     const static inline std::string CONCRETE_OP_CONSTRAINT = "op_constraint";
     ConcreteOpConstraint concreteOpConstraint;
+    bool trivialConcreteOpConstraint;
 
     const static inline std::string ABSTRACT_OP_CONSTRAINT = "abs_op_constraint";
     AbstractOpConstraint abstractOpConstraint;
+    bool trivialAbstractOpConstraint;
 
 
     llvm::ExitOnError ExitOnErr;
@@ -104,6 +106,14 @@ public:
 
     const AbstractOpConstraint& getAbstractOpConstraint() const{
         return abstractOpConstraint;
+    }
+
+    bool isTrivialConcreteOpConstraint() const{
+        return trivialConcreteOpConstraint;
+    }
+
+    bool isTrivialAbstractOpConstraint() const{
+        return trivialAbstractOpConstraint;
     }
 
 };

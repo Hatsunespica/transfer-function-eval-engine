@@ -31,7 +31,7 @@ namespace Evaluation {
 
     AbstractValue EvaluationEngine::computeBestAbstractValue(const std::vector<AbstractConcreteValuePair>& abstractConcreteValuePairs,
         const std::vector<size_t>& indices, ConcreteOperation concreteOperation, BinaryAbstractFunction join,
-        FromConcreteFunction fromConcreteFunction, ConcreteOpConstraint concreteOpConstraint, bool& hasBestValue) {
+        FromConcreteFunction fromConcreteFunction, ConcreteOpConstraint concreteOpConstraint,bool trivialOpConstraint, bool& hasBestValue) {
         std::vector<size_t> innerIndices(indices.size(), 0);
         std::vector<llvm::APInt> args;
         llvm::APInt concreteResult;
@@ -46,15 +46,20 @@ namespace Evaluation {
 
         AbstractValue result(evaluationParameter.getAbstractDomainLength()), tmpResult(evaluationParameter.getAbstractDomainLength());
         hasBestValue=false;
-        int opConstraintResult;
-        concreteOpConstraint(args.data(), &opConstraintResult);
+        int opConstraintResult=1;
+        if(!trivialOpConstraint){
+            concreteOpConstraint(args.data(), &opConstraintResult);
+        }
+
         if(opConstraintResult){
             concreteOperation(args.data(),&concreteResult);
             fromConcreteFunction(&concreteResult, result.data());
             hasBestValue=true;
         }
         while (nextIndices(innerIndices, limits, argSetter)) {
-            concreteOpConstraint(args.data(), &opConstraintResult);
+            if(!trivialOpConstraint){
+                concreteOpConstraint(args.data(), &opConstraintResult);
+            }
             if(opConstraintResult){
                 concreteOperation(args.data(),&concreteResult);
                 if(hasBestValue){
@@ -98,6 +103,8 @@ namespace Evaluation {
         ConcreteOpConstraint concreteOpConstraint = evaluationBatch.getConcreteOpConstraint();
         AbstractOpConstraint abstractOpConstraint = evaluationBatch.getAbstractOpConstraint();
         ConstantAbstractFunction getTop = evaluationBatch.getGetTop();
+        bool trivialConcreteOpConstraint = evaluationBatch.isTrivialConcreteOpConstraint();
+        bool trivialAbstractOpConstraint = evaluationBatch.isTrivialAbstractOpConstraint();
         llvm::APInt distanceResult, baseDistanceResult;
 
         auto& transferFunctions = evaluationBatch.getTransferFunctions();
@@ -124,11 +131,12 @@ namespace Evaluation {
             bool hasBestValue;
             unsigned baseDistance;
             bool solved;
-            int cnt=0, abstractOpConstraintResult;
+            int cnt=0;
 
             auto evalOnce = [&](){
                 bestResult = computeBestAbstractValue(data, indices,
-                                                      concreteOperation, join, fromConcrete, concreteOpConstraint, hasBestValue);
+                                                      concreteOperation, join, fromConcrete, concreteOpConstraint,
+                                                      trivialConcreteOpConstraint, hasBestValue);
                 if(hasBestValue){
                     if(baseTransferFunctionsNonEmpty) {
                         baseTransferFunctions[0](args.data(), baseResult.data());
@@ -163,11 +171,20 @@ namespace Evaluation {
                 }
             };
 
-            abstractOpConstraint(args.data(),&abstractOpConstraintResult);
+            int abstractOpConstraintResult=1;
+
+            if(!trivialAbstractOpConstraint){
+                abstractOpConstraint(args.data(),&abstractOpConstraintResult);
+            }
             if(abstractOpConstraintResult){
                 evalOnce();
             }
+
+
             while (nextIndices(indices, limits, argSetter)) {
+                if(!trivialAbstractOpConstraint){
+                    abstractOpConstraint(args.data(),&abstractOpConstraintResult);
+                }
                 if(abstractOpConstraintResult){
                     evalOnce();
                 }
