@@ -47,20 +47,11 @@ namespace Evaluation {
         AbstractValue result(evaluationParameter.getAbstractDomainLength()), tmpResult(evaluationParameter.getAbstractDomainLength());
         hasBestValue=false;
         int opConstraintResult=1;
-        if(!trivialOpConstraint){
-            concreteOpConstraint(args.data(), &opConstraintResult);
-        }
-
-        if(opConstraintResult){
+        if(trivialOpConstraint){
             concreteOperation(args.data(),&concreteResult);
             fromConcreteFunction(&concreteResult, result.data());
             hasBestValue=true;
-        }
-        while (nextIndices(innerIndices, limits, argSetter)) {
-            if(!trivialOpConstraint){
-                concreteOpConstraint(args.data(), &opConstraintResult);
-            }
-            if(opConstraintResult){
+            while (nextIndices(innerIndices, limits, argSetter)) {
                 concreteOperation(args.data(),&concreteResult);
                 if(hasBestValue){
                     fromConcreteFunction(&concreteResult, tmpResult.data());
@@ -68,6 +59,27 @@ namespace Evaluation {
                 }else{
                     fromConcreteFunction(&concreteResult, result.data());
                     hasBestValue=true;
+                }
+            }
+        }else{
+            // In the else branch, we need to check concreteOpConstraint for every inputs
+            concreteOpConstraint(args.data(), &opConstraintResult);
+            if(opConstraintResult){
+                concreteOperation(args.data(),&concreteResult);
+                fromConcreteFunction(&concreteResult, result.data());
+                hasBestValue=true;
+            }
+            while (nextIndices(innerIndices, limits, argSetter)) {
+                concreteOpConstraint(args.data(), &opConstraintResult);
+                if(opConstraintResult){
+                    concreteOperation(args.data(),&concreteResult);
+                    if(hasBestValue){
+                        fromConcreteFunction(&concreteResult, tmpResult.data());
+                        join(result.data(), tmpResult.data(), result.data());
+                    }else{
+                        fromConcreteFunction(&concreteResult, result.data());
+                        hasBestValue=true;
+                    }
                 }
             }
         }
@@ -173,22 +185,25 @@ namespace Evaluation {
 
             int abstractOpConstraintResult=1;
 
-            if(!trivialAbstractOpConstraint){
-                abstractOpConstraint(args.data(),&abstractOpConstraintResult);
-            }
-            if(abstractOpConstraintResult){
+            if(trivialAbstractOpConstraint){
                 evalOnce();
-            }
-
-
-            while (nextIndices(indices, limits, argSetter)) {
-                if(!trivialAbstractOpConstraint){
-                    abstractOpConstraint(args.data(),&abstractOpConstraintResult);
+                while (nextIndices(indices, limits, argSetter)) {
+                        evalOnce();
                 }
+            }else{
+                // In the else branch, we need to check abstractOpConstraint for every inputs
+                abstractOpConstraint(args.data(),&abstractOpConstraintResult);
                 if(abstractOpConstraintResult){
                     evalOnce();
                 }
+                while (nextIndices(indices, limits, argSetter)) {
+                    abstractOpConstraint(args.data(),&abstractOpConstraintResult);
+                    if(abstractOpConstraintResult){
+                        evalOnce();
+                    }
+                }
             }
+
             finalResult.emplace(bitWidth, result);
         }
         return finalResult;
