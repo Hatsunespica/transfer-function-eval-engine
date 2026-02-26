@@ -24,6 +24,7 @@ namespace Evaluation {
 
     EvaluationParameter::EvaluationParameter(
             const std::string &dataCachePath,
+            const bool& writeAbstractValue,
             const std::string &abstractValueCacheName,
             const std::vector<std::string> &transferFunctionNames,
             const std::vector<std::string> &baseTransferFunctionNames,
@@ -34,7 +35,7 @@ namespace Evaluation {
             const std::vector<size_t> &sampleBitWidth,
             const std::vector<size_t> &sampleAbstractAmount,
             const std::vector<size_t> &sampleConcreteAmount, const size_t &randomSeed)
-            : dataCachePath(dataCachePath), abstractValueCacheName(abstractValueCacheName),
+            : dataCachePath(dataCachePath),writeAbstractValue(writeAbstractValue), abstractValueCacheName(abstractValueCacheName),
               transferFunctionNames(transferFunctionNames),
               baseTransferFunctionNames(baseTransferFunctionNames),
               maxOperationLength(maxOperationLength), domain(domain),

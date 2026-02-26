@@ -19,7 +19,7 @@ namespace Evaluation {
         std::fstream cacheStream;
         size_t abstractDomainLength, bitWidth;
         const std::unordered_map<size_t, SampleParameter> &bitWidthToSampleParameter;
-        bool isRead;
+        bool isRead, isWrite;
 
         std::filesystem::path getCacheFilePath() const;
 
@@ -34,12 +34,19 @@ namespace Evaluation {
         AbstractValue getAbstractValue();
 
         void writeAbstractValue(const AbstractValue &abstractValue);
+
+        std::string getCacheName()const{
+            return cachePath.filename();
+        }
+        bool isReadCache()const{return isRead;}
+        bool isWriteCache()const{return isWrite;}
     };
 
     class EvaluationEngine {
         const EvaluationParameter &evaluationParameter;
         const EvaluationBatch &evaluationBatch;
         DataSampler dataSampler;
+        AbstractValueCache abstractValueCache;
 
         bool nextIndices(std::vector<size_t> &indices,
                          const std::vector<size_t> &limits,
@@ -57,6 +64,8 @@ namespace Evaluation {
                          const EvaluationBatch &evaluationBatch);
 
         EvaluationResultOnBitWidth evaluateBatch();
+        const AbstractValueCache& getAbstractValueCache()const{return abstractValueCache;}
+        void computeAndSaveAbstractValues();
     };
 
 } // namespace Evaluation

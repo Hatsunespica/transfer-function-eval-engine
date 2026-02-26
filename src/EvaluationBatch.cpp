@@ -22,8 +22,8 @@ namespace Evaluation {
                 .toPtr<InstanceConstraint>();
         getTop = ExitOnErr(jitModule.lookup(GET_TOP_NAME))
                 .toPtr<ConstantAbstractFunction>();
-        getBottom = ExitOnErr(jitModule.lookup(GET_BOTTOM_NAME))
-                .toPtr<ConstantAbstractFunction>();
+        //getBottom = ExitOnErr(jitModule.lookup(GET_BOTTOM_NAME))
+        //        .toPtr<ConstantAbstractFunction>();
         distance =
                 ExitOnErr(jitModule.lookup(DISTANCE_NAME)).toPtr<DistanceFunction>();
         fromConcrete = ExitOnErr(jitModule.lookup(FROM_CONCRETE_NAME))

@@ -20,6 +20,9 @@ cl::opt<std::string> DataCachePath("data-cache-path",
                                    cl::init(""),
                                    cl::value_desc("data cache path"));
 
+cl::opt<bool> WriteAbstractValue("write-abstract-value", cl::desc("Write abstract values to some file"),
+                            cl::init(false));
+
 cl::opt<std::string> AbstractValueCacheName("abstract-value-cache-name",
                                    cl::desc("Specify cache name for abstract values"),
                                    cl::init(""),
@@ -95,6 +98,13 @@ int main(int argc, char **argv) {
         return 1;
     }
 
+    if(WriteAbstractValue && !AbstractValueCacheName.empty()){
+        errs() << "Error: cannot write and read abstract values at the same time\n";
+        return 1;
+    }
+
+
+
     // Echo the inputs
     outs() << "domain: " << domain << "\n";
     if (!InputFile.empty())
@@ -125,14 +135,19 @@ int main(int argc, char **argv) {
     using namespace Evaluation;
     size_t ConcreteDomainLength = 1;
     EvaluationParameter evaluationParameter(
-            DataCachePath, AbstractValueCacheName, TransferFunctionNames, BaseTransferFunctionNames,
+            DataCachePath, WriteAbstractValue, AbstractValueCacheName, TransferFunctionNames, BaseTransferFunctionNames,
             MaxOperationLength, domain, ConcreteDomainLength, AbstractDomainLength,
             TransferFunctionArity, EnumerateBitWidth, SampleBitWidth,
             SampleAbstractAmount, SampleConcreteAmount, RandomSeed);
     EvaluationBatch evaluationBatch(*jitModulePtr, evaluationParameter);
     EvaluationEngine evaluationEngine(evaluationParameter, evaluationBatch);
-    auto result = evaluationEngine.evaluateBatch();
-    printEvaluationResultOnAllBitWidth(result);
+    if (WriteAbstractValue){
+        outs() << "Write cache to: "<<evaluationEngine.getAbstractValueCache().getCacheName()<<"\n";
+        evaluationEngine.computeAndSaveAbstractValues();
+    }else{
+        auto result = evaluationEngine.evaluateBatch();
+        printEvaluationResultOnAllBitWidth(result);
+    }
 
     return 0;
 }

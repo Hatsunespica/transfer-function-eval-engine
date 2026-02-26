@@ -20,12 +20,14 @@ namespace Evaluation {
             evaluationParameter.getAbstractDomainLength()),
                                                               bitWidthToSampleParameter(
                                                                       evaluationParameter.getBitWidthToSampleParameter()) {
-        isRead = evaluationParameter.getAbstractValueCacheName().empty();
+        isRead = !evaluationParameter.getAbstractValueCacheName().empty();
+        isWrite = evaluationParameter.getWriteAbstractValue();
         if (isRead) {
             cachePath = std::filesystem::path(evaluationParameter.getDataCachePath()) /
                         evaluationParameter.getAbstractValueCacheName();
             assert(is_directory(cachePath));
-        } else {
+        }
+        if(isWrite){
             auto dataPath = std::filesystem::path(evaluationParameter.getDataCachePath());
             cachePath = createUniqueFolder(dataPath);
         }
@@ -70,7 +72,7 @@ namespace Evaluation {
             auto fileSampleParameter = SampleParameter::loadFromFile(cacheStream);
             assert(sampleParameter == fileSampleParameter);
         } else {
-            cacheStream = std::fstream(cacheFilePath, std::ios::binary | std::ios::out);
+            cacheStream = std::fstream(cacheFilePath, std::ios::binary | std::ios::out| std::ios::trunc);
             sampleParameter.saveToFile(cacheStream);
         }
     }
@@ -98,7 +100,8 @@ namespace Evaluation {
             const EvaluationBatch &evaluationBatch)
             : evaluationParameter(evaluationParameter),
               evaluationBatch(evaluationBatch),
-              dataSampler(evaluationParameter, evaluationBatch) {}
+              dataSampler(evaluationParameter, evaluationBatch),
+              abstractValueCache(evaluationParameter){}
 
     bool EvaluationEngine::nextIndices(
             std::vector<size_t> &indices, const std::vector<size_t> &limits,
@@ -156,13 +159,9 @@ namespace Evaluation {
             hasBestValue = true;
             while (nextIndices(innerIndices, limits, argSetter)) {
                 concreteOperation(args.data(), &concreteResult);
-                if (hasBestValue) {
-                    fromConcreteFunction(&concreteResult, tmpResult.data());
-                    join(result.data(), tmpResult.data(), result.data());
-                } else {
-                    fromConcreteFunction(&concreteResult, result.data());
-                    hasBestValue = true;
-                }
+                fromConcreteFunction(&concreteResult, tmpResult.data());
+                join(result.data(), tmpResult.data(), result.data());
+
             }
         } else {
             // In the else branch, we need to check concreteOpConstraint for every
@@ -324,5 +323,9 @@ namespace Evaluation {
             finalResult.emplace(bitWidth, result);
         }
         return finalResult;
+    }
+
+    void EvaluationEngine::computeAndSaveAbstractValues(){
+
     }
 } // namespace Evaluation

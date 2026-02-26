@@ -52,6 +52,7 @@ namespace Evaluation {
 
     class EvaluationParameter {
         const std::string &dataCachePath;
+        const bool& writeAbstractValue;
         const std::string &abstractValueCacheName;
         const std::vector<std::string> &transferFunctionNames;
         const std::vector<std::string> &baseTransferFunctionNames;
@@ -69,6 +70,7 @@ namespace Evaluation {
 
     public:
         EvaluationParameter(const std::string &dataCachePath,
+                            const bool& writeAbstractValue,
                             const std::string &abstractValueCacheName,
                             const std::vector<std::string> &transferFunctionNames,
                             const std::vector<std::string> &baseTransferFunctionNames,
@@ -85,6 +87,8 @@ namespace Evaluation {
 
         // Getters
         const std::string &getDataCachePath() const { return dataCachePath; }
+
+        const bool& getWriteAbstractValue()const{return writeAbstractValue;}
 
         const std::string &getAbstractValueCacheName()const{return abstractValueCacheName;}
 

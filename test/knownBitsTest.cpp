@@ -1,29 +1,30 @@
 #include "llvm/ADT/APInt.h"
 #include <vector>
+#include "llvm/Support/raw_ostream.h"
 
 using namespace llvm;
 using namespace std;
 
 extern "C" void evalHead(){};
 
-extern "C" bool getConstraint(APInt* abstractDomain){
+extern "C" void getConstraint(APInt* abstractDomain, int* result){
     APInt zero = APInt::getZero(abstractDomain[0].getBitWidth());
     APInt andResult = abstractDomain[0] & abstractDomain[1];
-    return zero == andResult;
+    result[0] = zero == andResult;
 }
 
-extern "C" bool  getInstanceConstraint(APInt* abstractDomain, APInt* concreteValue) {
+extern "C" void getInstanceConstraint(APInt* abstractDomain, APInt* concreteValue,int* result) {
     APInt orOne = abstractDomain[1] | concreteValue[0];
     APInt neg = ~concreteValue[0];
     APInt orZero = abstractDomain[0] | neg;
     bool cmp1 = (orOne == concreteValue[0]);
     bool cmp2 = (orZero == neg);
-    return cmp1 && cmp2;
+    result[0]= cmp1 && cmp2;
 }
 
-extern "C" bool contains(APInt* abstractDomain1, APInt* abstractDomain2) {
-    return ((abstractDomain1[0] | abstractDomain2[0]) ==abstractDomain2[0]) &&
-        ((abstractDomain1[1] | abstractDomain2[1]) ==abstractDomain2[1]);
+extern "C" void contains(APInt* abstractDomain1, APInt* abstractDomain2, int* result) {
+    result[0]= ((abstractDomain1[0] | abstractDomain2[0]) ==abstractDomain2[0]) &&
+               ((abstractDomain1[1] | abstractDomain2[1]) ==abstractDomain2[1]);
 }
 
 extern "C" void getTop(APInt* abstractDomain, APInt* result) {
@@ -57,7 +58,8 @@ extern "C" void fromConcrete(APInt* concreteValue, APInt* abstractDomain) {
 }
 
 extern "C" void concrete_op(APInt* args, APInt* result) {
-    result[0] = args[0] & args[1];
+    APInt tmp = args[0] + args[1];
+    result[0] = tmp & args[1];
 }
 
 

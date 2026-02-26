@@ -37,14 +37,14 @@ namespace Evaluation {
 
     bool SampleParameter::matchSampleParameter(
             const std::filesystem::path &path, const SampleParameter &sampleParameter) {
-        std::ifstream fin(path, std::ios::binary);
+        std::fstream fin(path, std::ios::binary | std::ios::in);
         return sampleParameter == SampleParameter::loadFromFile(fin);
     }
 
     void DataSampler::saveData(const std::filesystem::path &path,
                                std::vector<AbstractConcreteValuePair> &data,
                                size_t bitWidth) const {
-        std::ofstream fout(path, std::ios::binary);
+        std::fstream fout(path, std::ios::binary | std::ios::out | std::ios::trunc);
 
         (bitWidthToSampleParameter.find(bitWidth)->second).saveToFile(fout);
 
@@ -73,7 +73,7 @@ namespace Evaluation {
     std::vector<AbstractConcreteValuePair>
     DataSampler::loadData(const std::filesystem::path &path,
                           size_t bitWidth) const {
-        std::ifstream fin(path, std::ios::binary);
+        std::fstream fin(path, std::ios::binary | std::ios::in);
 
         auto sampleParameter = SampleParameter::loadFromFile(fin);
         assert(sampleParameter == bitWidthToSampleParameter.find(bitWidth)->second);
