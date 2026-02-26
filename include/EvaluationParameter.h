@@ -43,7 +43,7 @@ public:
           domain(domain),
           concreteDomainLength(concreteDomainLength),
           abstractDomainLength(abstractDomainLength),
-        transferFunctionArity(transferFunctionArity),
+          transferFunctionArity(transferFunctionArity),
           enumerateBitWidth(enumerateBitWidth),
           sampleBitWidth(sampleBitWidth),
           sampleAbstractAmount(sampleAbstractAmount),

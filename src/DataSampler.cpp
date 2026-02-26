@@ -77,7 +77,7 @@ std::filesystem::path DataSampler::getDataFilePath(size_t bitWidth) const {
     return getDataPath(bitWidth) / DATA_FILE_NAME;
 }
 
-bool DataSampler::matchSampleParameter(const std::filesystem::path& path, const SampleParameter& sampleParameter)const{
+bool SampleParameter::matchSampleParameter(const std::filesystem::path& path, const SampleParameter& sampleParameter){
     std::ifstream fin(path, std::ios::binary);
     return sampleParameter == SampleParameter::loadFromFile(fin);
 }
@@ -217,7 +217,7 @@ std::vector<AbstractConcreteValuePair> DataSampler::getData(size_t bitWidth) {
     path dataFilePath = getDataFilePath(bitWidth);
 
     if (exists(dataFilePath) && is_regular_file(dataFilePath) &&
-        matchSampleParameter(dataFilePath, bitWidthToSampleParameter.find(bitWidth)->second)) {
+        SampleParameter::matchSampleParameter(dataFilePath, bitWidthToSampleParameter.find(bitWidth)->second)) {
         return loadData(dataFilePath, bitWidth);
     }else {
         auto result=sampleData(bitWidth);

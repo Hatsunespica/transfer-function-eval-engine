@@ -19,6 +19,7 @@ class EvaluationBatch {
     BinaryAbstractFunction meet, join;
 
     const static inline std::string GET_TOP_NAME = "getTop";
+    const static inline std::string GET_BOTTOM_NAME = "getBottom";
     ConstantAbstractFunction getTop, getBottom;
 
     const static inline std::string FROM_CONCRETE_NAME = "fromConcrete";

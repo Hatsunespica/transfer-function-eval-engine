@@ -52,7 +52,8 @@ public:
           numConcreteSamples(numConcreteSamples),
           numAbstractSamples(numAbstractSamples){}
 
-      const SamplePolicy& getSamplePolicy() const {
+
+    const SamplePolicy& getSamplePolicy() const {
         return samplePolicy;
     }
 
@@ -70,7 +71,9 @@ public:
 
     void saveToFile(std::ofstream& fout)const;
 
-    static SampleParameter  loadFromFile(std::ifstream& fin);
+    static SampleParameter loadFromFile(std::ifstream& fin);
+
+    static bool matchSampleParameter(const std::filesystem::path& path, const SampleParameter& sampleParameter);
 
     bool operator==(const SampleParameter& s)const{
         return samplePolicy == s.samplePolicy &&
@@ -103,7 +106,6 @@ class DataSampler {
 
     AbstractValue initAbstractValue(size_t bitWidth)const;
     bool nextAbstractValue(AbstractValue& abstractValue)const;
-    bool matchSampleParameter(const std::filesystem::path& path, const SampleParameter& sampleParameter)const;
     std::vector<ConcreteValue> sampleConcreteValues(AbstractValue& abstractValue, size_t bitWidth)const;
 public:
     DataSampler(const EvaluationParameter& evaluationParameter, const EvaluationBatch& evaluationBatch);
