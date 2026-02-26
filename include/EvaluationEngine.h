@@ -31,9 +31,9 @@ namespace Evaluation {
 
         void loadCache(size_t bitWidth);
 
-        AbstractValue getAbstractValue();
+        void getAbstractValue(AbstractValue& abstractValue, bool& hasBestValue);
 
-        void writeAbstractValue(const AbstractValue &abstractValue);
+        void writeAbstractValue(const AbstractValue &abstractValue,const bool& hasBestValue);
 
         std::string getCacheName()const{
             return cachePath.filename();

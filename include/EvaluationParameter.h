@@ -48,6 +48,7 @@ namespace Evaluation {
                    numConcreteSamples == s.numConcreteSamples &&
                    numAbstractSamples == s.numAbstractSamples;
         }
+        void dump()const;
     };
 
     class EvaluationParameter {

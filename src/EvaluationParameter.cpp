@@ -2,6 +2,7 @@
 #include <cassert>
 #include <fstream>
 #include <iostream>
+#include "llvm/Support/raw_ostream.h"
 
 namespace Evaluation {
     void SampleParameter::saveToFile(std::fstream &fout) const {
@@ -20,6 +21,28 @@ namespace Evaluation {
         fin.read((char *) &numAbstractSamples, sizeof(size_t));
         return SampleParameter((SamplePolicy) policy, randomSeed, numConcreteSamples,
                                numAbstractSamples);
+    }
+    void SampleParameter::dump() const {
+            llvm::errs() << "SampleParameter {\n"
+                         << "  samplePolicy: ";
+
+            switch (samplePolicy) {
+                case FULL_ENUMERATION:
+                    llvm::errs() << "FULL_ENUMERATION";
+                    break;
+                case SAMPLE_CONCRETE:
+                    llvm::errs() << "SAMPLE_CONCRETE";
+                    break;
+                case SAMPLE_ABSTRACT_AND_CONCRETE:
+                    llvm::errs() << "SAMPLE_ABSTRACT_AND_CONCRETE";
+                    break;
+            }
+
+            llvm::errs() << "\n"
+                         << "  randomSeed: " << randomSeed << "\n"
+                         << "  numConcreteSamples: " << numConcreteSamples << "\n"
+                         << "  numAbstractSamples: " << numAbstractSamples << "\n"
+                         << "}\n";
     }
 
     EvaluationParameter::EvaluationParameter(

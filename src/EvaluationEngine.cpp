@@ -71,27 +71,37 @@ namespace Evaluation {
             cacheStream = std::fstream(cacheFilePath, std::ios::binary | std::ios::in);
             auto fileSampleParameter = SampleParameter::loadFromFile(cacheStream);
             assert(sampleParameter == fileSampleParameter);
-        } else {
+            return;
+        }
+        if(isWrite) {
             cacheStream = std::fstream(cacheFilePath, std::ios::binary | std::ios::out| std::ios::trunc);
             sampleParameter.saveToFile(cacheStream);
+            return;
+        }
+        assert(false);
+    }
+
+    void AbstractValueCache::getAbstractValue(AbstractValue& abstractValue, bool& hasBestValue) {
+        uint64_t tmp;
+        cacheStream.read((char *) &tmp, sizeof(uint64_t));
+        hasBestValue = tmp;
+        abstractValue.clear();
+        if(hasBestValue){
+            for (size_t i = 0; i < abstractDomainLength; ++i) {
+                cacheStream.read((char *) &tmp, sizeof(uint64_t));
+                abstractValue.emplace_back(bitWidth, tmp);
+            }
         }
     }
 
-    AbstractValue AbstractValueCache::getAbstractValue() {
-        uint64_t tmp;
-        AbstractValue result;
-        for (size_t i = 0; i < abstractDomainLength; ++i) {
-            cacheStream.read((char *) &tmp, sizeof(uint64_t));
-            result.emplace_back(bitWidth, tmp);
-        }
-        return result;
-    }
-
-    void AbstractValueCache::writeAbstractValue(const AbstractValue &abstractValue) {
-        uint64_t tmp;
-        for (const auto &apInt: abstractValue) {
-            tmp = apInt.getZExtValue();
-            cacheStream.write((char *) &tmp, sizeof(uint64_t));
+    void AbstractValueCache::writeAbstractValue(const AbstractValue &abstractValue,const bool& hasBestValue) {
+        uint64_t tmp=hasBestValue;
+        cacheStream.write((char *) &tmp, sizeof(uint64_t));
+        if(hasBestValue){
+            for (const auto &apInt: abstractValue) {
+                tmp = apInt.getZExtValue();
+                cacheStream.write((char *) &tmp, sizeof(uint64_t));
+            }
         }
     }
 
@@ -226,12 +236,16 @@ namespace Evaluation {
                 evaluationBatch.isTrivialConcreteOpConstraint();
         bool trivialAbstractOpConstraint =
                 evaluationBatch.isTrivialAbstractOpConstraint();
+        bool isReadCache = abstractValueCache.isReadCache();
         llvm::APInt distanceResult, baseDistanceResult;
 
         auto &transferFunctions = evaluationBatch.getTransferFunctions();
         auto &baseTransferFunctions = evaluationBatch.getBaseTransferFunctions();
         bool baseTransferFunctionsNonEmpty = !baseTransferFunctions.empty();
         for (size_t bitWidth: evaluationParameter.getEnumerateBitWidth()) {
+            if(isReadCache){
+                abstractValueCache.loadCache(bitWidth);
+            }
             EvaluationResult result(numTransferFunctions);
             llvm::errs() << "Evaluate current bitwidth " << bitWidth << "\n";
             auto data = dataSampler.getData(bitWidth);
@@ -259,9 +273,14 @@ namespace Evaluation {
             int cnt = 0;
 
             auto evalOnce = [&]() {
-                bestResult = computeBestAbstractValue(
-                        data, indices, concreteOperation, join, fromConcrete,
-                        concreteOpConstraint, trivialConcreteOpConstraint, hasBestValue);
+                if(isReadCache){
+                    abstractValueCache.getAbstractValue(bestResult, hasBestValue);
+                }else{
+                    bestResult = computeBestAbstractValue(
+                            data, indices, concreteOperation, join, fromConcrete,
+                            concreteOpConstraint, trivialConcreteOpConstraint, hasBestValue);
+                }
+
                 if (hasBestValue) {
                     if (baseTransferFunctionsNonEmpty) {
                         baseTransferFunctions[0](args.data(), baseResult.data());
@@ -326,6 +345,76 @@ namespace Evaluation {
     }
 
     void EvaluationEngine::computeAndSaveAbstractValues(){
+        size_t numTransferFunctions =
+                evaluationParameter.getTransferFunctionNames().size();
+        size_t arity = evaluationParameter.getTransferFunctionArity();
+        EvaluationResultOnBitWidth finalResult;
+        llvm::errs() << "Only enumerate all bit width with arity " << arity << "\n";
+        ConcreteOperation concreteOperation = evaluationBatch.getConcreteFunction();
+        FromConcreteFunction fromConcrete = evaluationBatch.getFromConcrete();
+        BinaryAbstractFunction join = evaluationBatch.getJoin();
+        ConcreteOpConstraint concreteOpConstraint =
+                evaluationBatch.getConcreteOpConstraint();
+        AbstractOpConstraint abstractOpConstraint =
+                evaluationBatch.getAbstractOpConstraint();
+        bool trivialConcreteOpConstraint =
+                evaluationBatch.isTrivialConcreteOpConstraint();
+        bool trivialAbstractOpConstraint =
+                evaluationBatch.isTrivialAbstractOpConstraint();
+        llvm::APInt distanceResult, baseDistanceResult;
 
+        for (size_t bitWidth: evaluationParameter.getEnumerateBitWidth()) {
+            EvaluationResult result(numTransferFunctions);
+            llvm::errs() << "Evaluate current bitwidth " << bitWidth << "\n";
+            auto data = dataSampler.getData(bitWidth);
+            llvm::errs() << "Data pair size: " << data.size() << "\n";
+            assert(abstractValueCache.isWriteCache());
+            abstractValueCache.loadCache(bitWidth);
+
+            std::vector<size_t> indices(arity, 0), limits(arity, data.size());
+            std::vector<AbstractDomain> args;
+
+            std::function<void(size_t, size_t)> argSetter =
+                    [&args, &data](size_t index, size_t innerIndex) {
+                        args[index] = const_cast<AbstractDomain>(
+                                data[innerIndex].getAbstractValue().data());
+                    };
+            for (int i = 0; i < arity; ++i) {
+                args.push_back(
+                        const_cast<AbstractDomain>(data[0].getAbstractValue().data()));
+            }
+
+            AbstractValue bestResult;
+            bool hasBestValue;
+
+            auto evalOnce = [&]() {
+                bestResult = computeBestAbstractValue(
+                        data, indices, concreteOperation, join, fromConcrete,
+                        concreteOpConstraint, trivialConcreteOpConstraint, hasBestValue);
+                abstractValueCache.writeAbstractValue(bestResult, hasBestValue);
+            };
+
+            int abstractOpConstraintResult = 1;
+
+            if (trivialAbstractOpConstraint) {
+                evalOnce();
+                while (nextIndices(indices, limits, argSetter)) {
+                    evalOnce();
+                }
+            } else {
+                // In the else branch, we need to check abstractOpConstraint for every
+                // inputs
+                abstractOpConstraint(args.data(), &abstractOpConstraintResult);
+                if (abstractOpConstraintResult) {
+                    evalOnce();
+                }
+                while (nextIndices(indices, limits, argSetter)) {
+                    abstractOpConstraint(args.data(), &abstractOpConstraintResult);
+                    if (abstractOpConstraintResult) {
+                        evalOnce();
+                    }
+                }
+            }
+        }
     }
 } // namespace Evaluation
