@@ -1,27 +1,27 @@
+#include "JIT.h"
+#include "HEADER_INCLUDE_PATH.h"
+#include "clang/Frontend/TextDiagnosticPrinter.h"
+#include "llvm/ADT/APInt.h"
+#include "llvm/ExecutionEngine/Orc/LLJIT.h"
+#include "llvm/ExecutionEngine/Orc/SelfExecutorProcessControl.h"
+#include "llvm/ExecutionEngine/Orc/ThreadSafeModule.h"
+#include "llvm/IR/LLVMContext.h"
+#include "llvm/IR/Module.h"
+#include "llvm/Support/SourceMgr.h"
 #include <clang/CodeGen/CodeGenAction.h>
 #include <clang/Driver/Compilation.h>
 #include <clang/Driver/Driver.h>
 #include <clang/Frontend/CompilerInstance.h>
 #include <clang/Frontend/FrontendOptions.h>
-#include <llvm/Support/TargetSelect.h>
-#include <llvm/Support/VirtualFileSystem.h>
-#include "llvm/IR/Module.h"
-#include "llvm/ExecutionEngine/Orc/LLJIT.h"
-#include "llvm/ExecutionEngine/Orc/ThreadSafeModule.h"
-#include "llvm/IR/LLVMContext.h"
-#include "llvm/Support/SourceMgr.h"
-#include "llvm/ADT/APInt.h"
+#include <clang/Lex/PreprocessorOptions.h>
 #include <llvm/ExecutionEngine/Orc/Core.h>
 #include <llvm/ExecutionEngine/Orc/ExecutionUtils.h>
 #include <llvm/ExecutionEngine/Orc/JITTargetMachineBuilder.h>
 #include <llvm/ExecutionEngine/Orc/Shared/ExecutorAddress.h>
-#include "llvm/ExecutionEngine/Orc/SelfExecutorProcessControl.h"
 #include <llvm/IR/DataLayout.h>
+#include <llvm/Support/TargetSelect.h>
+#include <llvm/Support/VirtualFileSystem.h>
 #include <vector>
-#include "JIT.h"
-#include "HEADER_INCLUDE_PATH.h"
-#include <clang/Lex/PreprocessorOptions.h>
-#include "clang/Frontend/TextDiagnosticPrinter.h"
 
 using namespace llvm;
 using namespace llvm::orc;
@@ -34,7 +34,8 @@ namespace {
         std::string message;
         llvm::raw_string_ostream os{message};
 
-        void HandleDiagnostic(DiagnosticsEngine::Level diagLevel, const Diagnostic &info) override {
+        void HandleDiagnostic(DiagnosticsEngine::Level diagLevel,
+                              const Diagnostic &info) override {
             DiagnosticConsumer::HandleDiagnostic(diagLevel, info);
             const char *level;
             switch (diagLevel) {
@@ -67,32 +68,29 @@ namespace {
             }
         }
     };
-}
+} // namespace
 
-
-
-std::unique_ptr<llvm::orc::LLJIT> createJITModule(const std::string& fileName,
-                                     const std::vector<std::string>& compileArgs,
-                                     const std::string& source){
+std::unique_ptr<llvm::orc::LLJIT>
+createJITModule(const std::string &fileName,
+                const std::vector<std::string> &compileArgs,
+                const std::string &source) {
 
     auto fs = llvm::vfs::getRealFileSystem();
     DiagsSaver dc;
     std::vector<const char *> args{"clang"};
-    bool fromFile=!fileName.empty();
-    if(fromFile){
+    bool fromFile = !fileName.empty();
+    if (fromFile) {
         args.push_back(fileName.c_str());
-    }else{
+    } else {
         args.push_back("eval-engine-fake-input.cpp");
     }
-    for(const auto& s:compileArgs){
+    for (const auto &s: compileArgs) {
         args.push_back(s.c_str());
     }
 
-
     auto diagsOptions = DiagnosticOptions();
-    auto diags = CompilerInstance::createDiagnostics(
-            *fs,
-            diagsOptions, &dc, false);
+    auto diags =
+            CompilerInstance::createDiagnostics(*fs, diagsOptions, &dc, false);
     clang::driver::Driver d(args[0], kTargetTriple, *diags, "cc", fs);
     d.setCheckInputsExist(false);
     std::unique_ptr<clang::driver::Compilation> comp(d.BuildCompilation(args));
@@ -113,10 +111,8 @@ std::unique_ptr<llvm::orc::LLJIT> createJITModule(const std::string& fileName,
     CompilerInvocation::CreateFromArgs(ci->getInvocation(), ccArgs, *diags);
 
     HeaderSearchOptions &HSO = ci->getInvocation().getHeaderSearchOpts();
-    for(const auto& path:INCLUDE_PATHS){
-        HSO.AddPath(path,
-                    clang::frontend::Angled,
-                    false, false);
+    for (const auto &path: INCLUDE_PATHS) {
+        HSO.AddPath(path, clang::frontend::Angled, false, false);
     }
 
     ci->setDiagnostics(diags);
@@ -125,27 +121,23 @@ std::unique_ptr<llvm::orc::LLJIT> createJITModule(const std::string& fileName,
     ci->createFileManager();
     ci->createSourceManager();
 
-    ci->getDiagnostics().setClient(
-        new clang::TextDiagnosticPrinter(llvm::errs(), ci->getDiagnostics().getDiagnosticOptions())
-        );
+    ci->getDiagnostics().setClient(new clang::TextDiagnosticPrinter(
+            llvm::errs(), ci->getDiagnostics().getDiagnosticOptions()));
     if (!fromFile) {
         auto buffer = llvm::MemoryBuffer::getMemBuffer(source, "<jit-input>");
-            ci->getSourceManager().setMainFileID(
-                ci->getSourceManager().createFileID(std::move(buffer))
-        );
+        ci->getSourceManager().setMainFileID(
+                ci->getSourceManager().createFileID(std::move(buffer)));
         auto &FEOpts = ci->getInvocation().getFrontendOpts();
         FEOpts.Inputs.clear();
-        FEOpts.Inputs.emplace_back(
-            ci->getSourceManager().getBufferOrFake(ci->getSourceManager().getMainFileID()),
-            clang::InputKind(clang::Language::CXX)
-        );
+        FEOpts.Inputs.emplace_back(ci->getSourceManager().getBufferOrFake(
+                                           ci->getSourceManager().getMainFileID()),
+                                   clang::InputKind(clang::Language::CXX));
     }
-    //ci->getCodeGenOpts().OptimizationLevel = 2;
-    //ci->getCodeGenOpts().OptimizeSize = 0;
+    // ci->getCodeGenOpts().OptimizationLevel = 2;
+    // ci->getCodeGenOpts().OptimizeSize = 0;
 
-    //ci->getCodeGenOpts().DisableFree = false;
-    //ci->getFrontendOpts().DisableFree = false;
-
+    // ci->getCodeGenOpts().DisableFree = false;
+    // ci->getFrontendOpts().DisableFree = false;
 
     std::unique_ptr<clang::EmitLLVMOnlyAction> action =
             std::make_unique<clang::EmitLLVMOnlyAction>();
@@ -155,14 +147,14 @@ std::unique_ptr<llvm::orc::LLJIT> createJITModule(const std::string& fileName,
         return nullptr;
     }
 
-
     std::unique_ptr<llvm::Module> M = action->takeModule();
-    //M->dump();
+    // M->dump();
 
     InitializeNativeTarget();
     InitializeNativeTargetAsmPrinter();
 
-    std::unique_ptr<llvm::orc::LLJIT> JIT=llvm::cantFail(llvm::orc::LLJITBuilder().create());
+    std::unique_ptr<llvm::orc::LLJIT> JIT =
+            llvm::cantFail(llvm::orc::LLJITBuilder().create());
     /*
     auto EPC = cantFail(orc::SelfExecutorProcessControl::Create());
     auto ES = std::make_unique<orc::ExecutionSession>(std::move(EPC));
@@ -170,12 +162,12 @@ std::unique_ptr<llvm::orc::LLJIT> createJITModule(const std::string& fileName,
     orc::JITTargetMachineBuilder JTMB(
             ES->getExecutorProcessControl().getTargetTriple());*/
 
-    auto& DL = JIT->getDataLayout();//cantFail(JTMB.getDefaultDataLayoutForTarget());
+    auto &DL =
+            JIT->getDataLayout(); // cantFail(JTMB.getDefaultDataLayoutForTarget());
 
     JIT->getMainJITDylib().addGenerator(
-            cantFail(DynamicLibrarySearchGenerator::GetForCurrentProcess(DL.getGlobalPrefix()))
-    );
-
+            cantFail(DynamicLibrarySearchGenerator::GetForCurrentProcess(
+                    DL.getGlobalPrefix())));
 
     if (!M) {
         return nullptr;
@@ -183,43 +175,41 @@ std::unique_ptr<llvm::orc::LLJIT> createJITModule(const std::string& fileName,
 
     llvm::ExitOnError ExitOnErr;
 
-    ExitOnErr(JIT->addIRModule(ThreadSafeModule(std::move(M), std::make_unique<LLVMContext>())));
+    ExitOnErr(JIT->addIRModule(
+            ThreadSafeModule(std::move(M), std::make_unique<LLVMContext>())));
 
-    using TestFnTy = void(*)();
+    using TestFnTy = void (*)();
     auto testJIT = ExitOnErr(JIT->lookup("evalHead"));
-    TestFnTy testFn = (TestFnTy)testJIT.toPtr<TestFnTy>();
+    TestFnTy testFn = (TestFnTy) testJIT.toPtr<TestFnTy>();
     testFn();
 
     return std::move(JIT);
 }
 
-
-
-std::pair<bool, std::string> compile(const std::string& fileName,
-                                     const std::vector<std::string>& compileArgs,
-                                     const std::string& source) {
+std::pair<bool, std::string>
+compile(const std::string &fileName,
+        const std::vector<std::string> &compileArgs,
+        const std::string &source) {
     auto fs = llvm::vfs::getRealFileSystem();
     DiagsSaver dc;
     std::vector<const char *> args{"clang"};
-    bool fromFile=!fileName.empty();
-    if(fromFile){
+    bool fromFile = !fileName.empty();
+    if (fromFile) {
         args.push_back(fileName.c_str());
-        for(const auto& s:compileArgs){
+        for (const auto &s: compileArgs) {
             args.push_back(s.c_str());
         }
 
-    }else{
+    } else {
         args.push_back("eval-engine-fake-input.cpp");
-        for(const auto& s:compileArgs){
+        for (const auto &s: compileArgs) {
             args.push_back(s.c_str());
         }
     }
 
-
     auto diagsOptions = DiagnosticOptions();
-    auto diags = CompilerInstance::createDiagnostics(
-            *fs,
-            diagsOptions, &dc, false);
+    auto diags =
+            CompilerInstance::createDiagnostics(*fs, diagsOptions, &dc, false);
     clang::driver::Driver d(args[0], kTargetTriple, *diags, "cc", fs);
     d.setCheckInputsExist(false);
     std::unique_ptr<clang::driver::Compilation> comp(d.BuildCompilation(args));
@@ -240,10 +230,8 @@ std::pair<bool, std::string> compile(const std::string& fileName,
     CompilerInvocation::CreateFromArgs(ci->getInvocation(), ccArgs, *diags);
 
     HeaderSearchOptions &HSO = ci->getInvocation().getHeaderSearchOpts();
-    for(const auto& path:INCLUDE_PATHS){
-        HSO.AddPath(path,
-                    clang::frontend::Angled,
-                    false, false);
+    for (const auto &path: INCLUDE_PATHS) {
+        HSO.AddPath(path, clang::frontend::Angled, false, false);
     }
 
     ci->setDiagnostics(diags);
@@ -252,20 +240,17 @@ std::pair<bool, std::string> compile(const std::string& fileName,
     ci->createFileManager();
     ci->createSourceManager();
 
-    ci->getDiagnostics().setClient(
-        new clang::TextDiagnosticPrinter(llvm::errs(), ci->getDiagnostics().getDiagnosticOptions())
-        );
+    ci->getDiagnostics().setClient(new clang::TextDiagnosticPrinter(
+            llvm::errs(), ci->getDiagnostics().getDiagnosticOptions()));
     if (!fromFile) {
         auto buffer = llvm::MemoryBuffer::getMemBuffer(source, "<jit-input>");
-            ci->getSourceManager().setMainFileID(
-                ci->getSourceManager().createFileID(std::move(buffer))
-        );
+        ci->getSourceManager().setMainFileID(
+                ci->getSourceManager().createFileID(std::move(buffer)));
         auto &FEOpts = ci->getInvocation().getFrontendOpts();
         FEOpts.Inputs.clear();
-        FEOpts.Inputs.emplace_back(
-            ci->getSourceManager().getBufferOrFake(ci->getSourceManager().getMainFileID()),
-            clang::InputKind(clang::Language::CXX)
-        );
+        FEOpts.Inputs.emplace_back(ci->getSourceManager().getBufferOrFake(
+                                           ci->getSourceManager().getMainFileID()),
+                                   clang::InputKind(clang::Language::CXX));
     }
     ci->getCodeGenOpts().DisableFree = false;
     ci->getFrontendOpts().DisableFree = false;
@@ -284,9 +269,8 @@ std::pair<bool, std::string> compile(const std::string& fileName,
         return {false, "error"};
     }
 
-
     std::unique_ptr<llvm::Module> M = action->takeModule();
-    //M->dump();
+    // M->dump();
 
     /*switch (ci->getFrontendOpts().ProgramAction) {
     case frontend::ActionKind::EmitObj: {
@@ -311,7 +295,8 @@ std::pair<bool, std::string> compile(const std::string& fileName,
     // ─────────────────────────────────────────────
     // Build JIT
     // ─────────────────────────────────────────────
-    std::unique_ptr<llvm::orc::LLJIT> JIT=llvm::cantFail(llvm::orc::LLJITBuilder().create());
+    std::unique_ptr<llvm::orc::LLJIT> JIT =
+            llvm::cantFail(llvm::orc::LLJITBuilder().create());
 
     auto EPC = cantFail(orc::SelfExecutorProcessControl::Create());
     auto ES = std::make_unique<orc::ExecutionSession>(std::move(EPC));
@@ -323,36 +308,35 @@ std::pair<bool, std::string> compile(const std::string& fileName,
 
     // allow JITed code to use libstdc++ / libc++ / libLLVM symbols
     JIT->getMainJITDylib().addGenerator(
-            cantFail(DynamicLibrarySearchGenerator::GetForCurrentProcess(DL.getGlobalPrefix()))
-    );
+            cantFail(DynamicLibrarySearchGenerator::GetForCurrentProcess(
+                    DL.getGlobalPrefix())));
 
     // ─────────────────────────────────────────────
     // Load LLVM IR file
     // ─────────────────────────────────────────────
-    //std::unique_ptr<Module> M(parseIRFile("wrapper.ll", err, ctx));
+    // std::unique_ptr<Module> M(parseIRFile("wrapper.ll", err, ctx));
     if (!M) {
         return {false, "error"};
     }
 
     llvm::ExitOnError ExitOnErr;
 
-    ExitOnErr(JIT->addIRModule(ThreadSafeModule(std::move(M), std::make_unique<LLVMContext>())));
+    ExitOnErr(JIT->addIRModule(
+            ThreadSafeModule(std::move(M), std::make_unique<LLVMContext>())));
 
     // ─────────────────────────────────────────────
     // Lookup symbol
     // ─────────────────────────────────────────────
-    using TestFnTy = int(*)(int,int);
+    using TestFnTy = int (*)(int, int);
     auto testSym = ExitOnErr(JIT->lookup("test"));
 
-
-    TestFnTy testFn = (TestFnTy)testSym.toPtr<TestFnTy>();
-    outs() << "Result 1 = " << testFn(1,2) << "\n";
-
+    TestFnTy testFn = (TestFnTy) testSym.toPtr<TestFnTy>();
+    outs() << "Result 1 = " << testFn(1, 2) << "\n";
 
     auto sym = ExitOnErr(JIT->lookup("getKB"));
 
-    using FnTy = void(*)(APInt**, APInt*);
-    FnTy getVector_C = (FnTy)sym.toPtr<FnTy>();
+    using FnTy = void (*)(APInt **, APInt *);
+    FnTy getVector_C = (FnTy) sym.toPtr<FnTy>();
 
     // ─────────────────────────────────────────────
     // Prepare arguments
@@ -360,8 +344,8 @@ std::pair<bool, std::string> compile(const std::string& fileName,
     std::vector<APInt> arg0{APInt(64, 123), APInt(64, 123)};
     std::vector<APInt> arg1{APInt(64, 456), APInt(64, 456)};
 
-    std::vector<APInt*> vargs{arg0.data(), arg1.data()};
-    std::vector<APInt> result={APInt(64, 456), APInt(64, 456)};
+    std::vector<APInt *> vargs{arg0.data(), arg1.data()};
+    std::vector<APInt> result = {APInt(64, 456), APInt(64, 456)};
 
     // ─────────────────────────────────────────────
     // CALL THE JIT FUNCTION

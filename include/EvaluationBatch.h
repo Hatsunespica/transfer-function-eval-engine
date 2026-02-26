@@ -1,124 +1,109 @@
 #ifndef TRANSFER_FUNCTION_EVAL_ENGINE_EVALUATIONBATCH_H
 #define TRANSFER_FUNCTION_EVAL_ENGINE_EVALUATIONBATCH_H
 
+#include "EvaluationParameter.h"
+#include "EvaluationTypes.h"
 #include "llvm/ExecutionEngine/Orc/LLJIT.h"
 #include "llvm/Support/Error.h"
-#include "EvaluationTypes.h"
-#include "EvaluationParameter.h"
 
+namespace Evaluation {
 
-namespace Evaluation{
+    class EvaluationBatch {
+        std::vector<AbstractOperation> transferFunctions, baseTransferFunctions;
+        const static inline std::string CONCRETE_FUNCTION_NAME = "concrete_op";
+        ConcreteOperation concreteFunction;
 
-class EvaluationBatch {
-    std::vector<AbstractOperation> transferFunctions, baseTransferFunctions;
-    const static inline std::string CONCRETE_FUNCTION_NAME = "concrete_op";
-    ConcreteOperation concreteFunction;
+        const static inline std::string MEET_NAME = "meet";
+        const static inline std::string JOIN_NAME = "join";
+        BinaryAbstractFunction meet, join;
 
-    const static inline std::string MEET_NAME = "meet";
-    const static inline std::string JOIN_NAME = "join";
-    BinaryAbstractFunction meet, join;
+        const static inline std::string GET_TOP_NAME = "getTop";
+        const static inline std::string GET_BOTTOM_NAME = "getBottom";
+        ConstantAbstractFunction getTop, getBottom;
 
-    const static inline std::string GET_TOP_NAME = "getTop";
-    const static inline std::string GET_BOTTOM_NAME = "getBottom";
-    ConstantAbstractFunction getTop, getBottom;
+        const static inline std::string FROM_CONCRETE_NAME = "fromConcrete";
+        FromConcreteFunction fromConcrete;
 
-    const static inline std::string FROM_CONCRETE_NAME = "fromConcrete";
-    FromConcreteFunction fromConcrete;
+        const static inline std::string CONTAINS_FUNCTION_NAME = "contains";
+        ContainsFunction containsFunction;
 
-    const static inline std::string CONTAINS_FUNCTION_NAME = "contains";
-    ContainsFunction containsFunction;
+        const static inline std::string DISTANCE_NAME = "distance";
+        DistanceFunction distance;
 
-    const static inline std::string DISTANCE_NAME = "distance";
-    DistanceFunction distance;
+        const static inline std::string ABSTRACT_DOMAIN_CONSTRAINT_NAME =
+                "getConstraint";
+        AbstractDomainConstraint abstractDomainConstraint;
 
-    const static inline std::string ABSTRACT_DOMAIN_CONSTRAINT_NAME = "getConstraint";
-    AbstractDomainConstraint abstractDomainConstraint;
+        const static inline std::string INSTANCE_CONSTRAINT_NAME =
+                "getInstanceConstraint";
+        InstanceConstraint instanceConstraint;
 
-    const static inline std::string INSTANCE_CONSTRAINT_NAME = "getInstanceConstraint";
-    InstanceConstraint instanceConstraint;
+        const static inline std::string CONCRETE_OP_CONSTRAINT = "op_constraint";
+        ConcreteOpConstraint concreteOpConstraint;
+        bool trivialConcreteOpConstraint;
 
-    const static inline std::string CONCRETE_OP_CONSTRAINT = "op_constraint";
-    ConcreteOpConstraint concreteOpConstraint;
-    bool trivialConcreteOpConstraint;
+        const static inline std::string ABSTRACT_OP_CONSTRAINT = "abs_op_constraint";
+        AbstractOpConstraint abstractOpConstraint;
+        bool trivialAbstractOpConstraint;
 
-    const static inline std::string ABSTRACT_OP_CONSTRAINT = "abs_op_constraint";
-    AbstractOpConstraint abstractOpConstraint;
-    bool trivialAbstractOpConstraint;
+        llvm::ExitOnError ExitOnErr;
 
+    public:
+        EvaluationBatch(llvm::orc::LLJIT &jitModule,
+                        const EvaluationParameter &parameters);
 
-    llvm::ExitOnError ExitOnErr;
+        const std::vector<AbstractOperation> &getTransferFunctions() const {
+            return transferFunctions;
+        }
 
-public:
-    EvaluationBatch(llvm::orc::LLJIT& jitModule,
-                    const EvaluationParameter& parameters);
+        const std::vector<AbstractOperation> &getBaseTransferFunctions() const {
+            return baseTransferFunctions;
+        }
 
+        const ConcreteOperation &getConcreteFunction() const {
+            return concreteFunction;
+        }
 
-    const std::vector<AbstractOperation>& getTransferFunctions() const {
-        return transferFunctions;
-    }
+        const BinaryAbstractFunction &getMeet() const { return meet; }
 
-    const std::vector<AbstractOperation>& getBaseTransferFunctions() const {
-        return baseTransferFunctions;
-    }
+        const BinaryAbstractFunction &getJoin() const { return join; }
 
-    const ConcreteOperation& getConcreteFunction() const {
-        return concreteFunction;
-    }
+        const ConstantAbstractFunction &getGetTop() const { return getTop; }
 
-    const BinaryAbstractFunction& getMeet() const {
-        return meet;
-    }
+        const ConstantAbstractFunction &getGetBottom() const { return getBottom; }
 
-    const BinaryAbstractFunction& getJoin() const {
-        return join;
-    }
+        const FromConcreteFunction &getFromConcrete() const { return fromConcrete; }
 
-    const ConstantAbstractFunction& getGetTop() const {
-        return getTop;
-    }
+        const DistanceFunction &getDistance() const { return distance; }
 
-    const ConstantAbstractFunction& getGetBottom() const {
-        return getBottom;
-    }
+        const ContainsFunction &getContainsFunction() const {
+            return containsFunction;
+        }
 
-    const FromConcreteFunction& getFromConcrete() const {
-        return fromConcrete;
-    }
+        const AbstractDomainConstraint &getAbstractDomainConstraint() const {
+            return abstractDomainConstraint;
+        }
 
-    const DistanceFunction& getDistance() const {
-        return distance;
-    }
+        const InstanceConstraint &getInstanceConstraint() const {
+            return instanceConstraint;
+        }
 
-    const ContainsFunction& getContainsFunction() const {
-        return containsFunction;
-    }
+        const ConcreteOpConstraint &getConcreteOpConstraint() const {
+            return concreteOpConstraint;
+        }
 
-    const AbstractDomainConstraint& getAbstractDomainConstraint() const {
-        return abstractDomainConstraint;
-    }
+        const AbstractOpConstraint &getAbstractOpConstraint() const {
+            return abstractOpConstraint;
+        }
 
-    const InstanceConstraint& getInstanceConstraint() const {
-        return instanceConstraint;
-    }
+        bool isTrivialConcreteOpConstraint() const {
+            return trivialConcreteOpConstraint;
+        }
 
-    const ConcreteOpConstraint& getConcreteOpConstraint() const{
-        return concreteOpConstraint;
-    }
+        bool isTrivialAbstractOpConstraint() const {
+            return trivialAbstractOpConstraint;
+        }
+    };
+} // namespace Evaluation
 
-    const AbstractOpConstraint& getAbstractOpConstraint() const{
-        return abstractOpConstraint;
-    }
-
-    bool isTrivialConcreteOpConstraint() const{
-        return trivialConcreteOpConstraint;
-    }
-
-    bool isTrivialAbstractOpConstraint() const{
-        return trivialAbstractOpConstraint;
-    }
-
-};
-}
-
-
-#endif //TRANSFER_FUNCTION_EVAL_ENGINE_EVALUATIONBATCH_H
+#endif // TRANSFER_FUNCTION_EVAL_ENGINE_EVALUATIONBATCH_H

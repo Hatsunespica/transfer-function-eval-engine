@@ -1,178 +1,138 @@
-#include "llvm/Support/CommandLine.h"
-#include "JIT.h"
-#include "llvm/Support/raw_ostream.h"
 #include "EvaluationEngine.h"
+#include "JIT.h"
+#include "llvm/Support/CommandLine.h"
+#include "llvm/Support/raw_ostream.h"
 #include <iostream>
-
 
 using namespace llvm;
 
-cl::opt<std::string> InputFile(
-        "file",
-        cl::desc("Specify input file name"),
-        cl::init(""),
-        cl::value_desc("filename")
-);
+cl::opt<std::string> InputFile("file", cl::desc("Specify input file name"),
+                               cl::init(""), cl::value_desc("filename"));
 
-cl::opt<std::string> SourceCode(
-        "source",
-        cl::desc("Specify input source code"),
-        cl::init(""),
-        cl::value_desc("source code")
-);
+cl::opt<std::string> SourceCode("source", cl::desc("Specify input source code"),
+                                cl::init(""), cl::value_desc("source code"));
 
-cl::opt<bool> ReadFromStdin(
-        "stdin",
-        cl::desc("Read source code from stdin"),
-        cl::init(false)
-);
+cl::opt<bool> ReadFromStdin("stdin", cl::desc("Read source code from stdin"),
+                            cl::init(false));
 
-cl::opt<std::string> DataCachePath(
-        "data-cache-path",
-        cl::desc("Specify data cache path"),
-        cl::init(""),
-        cl::value_desc("data cache path")
-);
+cl::opt<std::string> DataCachePath("data-cache-path",
+                                   cl::desc("Specify data cache path"),
+                                   cl::init(""),
+                                   cl::value_desc("data cache path"));
 
-cl::list<std::string> TransferFunctionNames(
-        "transfer-function",
-        cl::desc("Transfer Function names to process"),
-        cl::OneOrMore,
-        cl::CommaSeparated,
-        cl::value_desc("transfer function names")
-);
+cl::opt<std::string> AbstractValueCacheName("abstract-value-cache-name",
+                                   cl::desc("Specify cache name for abstract values"),
+                                   cl::init(""),
+                                   cl::value_desc("abstract value cache name"));
+
+cl::list<std::string>
+        TransferFunctionNames("transfer-function",
+                              cl::desc("Transfer Function names to process"),
+                              cl::OneOrMore, cl::CommaSeparated,
+                              cl::value_desc("transfer function names"));
 
 cl::list<std::string> BaseTransferFunctionNames(
         "base-transfer-function",
-        cl::desc("Base transfer Function names to process"),
-        cl::ZeroOrMore,
-        cl::CommaSeparated,
-        cl::value_desc("base transfer function names")
-);
+        cl::desc("Base transfer Function names to process"), cl::ZeroOrMore,
+        cl::CommaSeparated, cl::value_desc("base transfer function names"));
 
-cl::opt<size_t> MaxOperationLength(
-        "max-operation-length",
-        cl::desc("The maximal length of operations"),
-        cl::Required,
-        cl::value_desc("length")
-);
+cl::opt<size_t> MaxOperationLength("max-operation-length",
+                                   cl::desc("The maximal length of operations"),
+                                   cl::Required, cl::value_desc("length"));
 
-cl::opt<std::string> domain(
-        "domain",
-        cl::desc("The name of evaluated domain"),
-        cl::Required,
-        cl::value_desc("string")
-);
+cl::opt<std::string> domain("domain", cl::desc("The name of evaluated domain"),
+                            cl::Required, cl::value_desc("string"));
 
-cl::opt<size_t> AbstractDomainLength(
-        "abstract-domain-length",
-        cl::desc("The length of the abstract domain"),
-        cl::Required,
-        cl::value_desc("length")
-);
+cl::opt<size_t>
+        AbstractDomainLength("abstract-domain-length",
+                             cl::desc("The length of the abstract domain"),
+                             cl::Required, cl::value_desc("length"));
 
-cl::opt<size_t> TransferFunctionArity(
-        "transfer-function-arity",
-        cl::desc("The arity of transfer functions"),
-        cl::Required,
-        cl::value_desc("arity")
-);
+cl::opt<size_t>
+        TransferFunctionArity("transfer-function-arity",
+                              cl::desc("The arity of transfer functions"),
+                              cl::Required, cl::value_desc("arity"));
 
-cl::list<size_t> EnumerateBitWidth(
-    "enumerate-bit-width",
-    cl::desc("Bit widths used for enumeration"),
-    cl::OneOrMore,
-    cl::CommaSeparated,
-    cl::value_desc("int")
-);
+cl::list<size_t> EnumerateBitWidth("enumerate-bit-width",
+                                   cl::desc("Bit widths used for enumeration"),
+                                   cl::OneOrMore, cl::CommaSeparated,
+                                   cl::value_desc("int"));
 
-cl::list<size_t> SampleBitWidth(
-    "sample-bit-width",
-    cl::desc("Bit widths used for sampling"),
-    cl::OneOrMore,
-    cl::CommaSeparated,
-    cl::value_desc("int")
-);
+cl::list<size_t> SampleBitWidth("sample-bit-width",
+                                cl::desc("Bit widths used for sampling"),
+                                cl::OneOrMore, cl::CommaSeparated,
+                                cl::value_desc("int"));
 
-cl::list<size_t> SampleAbstractAmount(
-    "sample-abstract-amount",
-    cl::desc("Number of abstract samples to generate"),
-    cl::OneOrMore,
-    cl::CommaSeparated,
-    cl::value_desc("int")
-);
+cl::list<size_t>
+        SampleAbstractAmount("sample-abstract-amount",
+                             cl::desc("Number of abstract samples to generate"),
+                             cl::OneOrMore, cl::CommaSeparated,
+                             cl::value_desc("int"));
 
-cl::list<size_t> SampleConcreteAmount(
-    "sample-concrete-amount",
-    cl::desc("Number of concrete samples to generate"),
-    cl::OneOrMore,
-    cl::CommaSeparated,
-    cl::value_desc("int")
-);
+cl::list<size_t>
+        SampleConcreteAmount("sample-concrete-amount",
+                             cl::desc("Number of concrete samples to generate"),
+                             cl::OneOrMore, cl::CommaSeparated,
+                             cl::value_desc("int"));
 
-cl::opt<int> RandomSeed(
-        "random-seed",
-        cl::desc("random seed used in sampling"),
-        cl::init(0)
-);
-
+cl::opt<int> RandomSeed("random-seed", cl::desc("random seed used in sampling"),
+                        cl::init(0));
 
 llvm::cl::list<std::string> JITConfig(
         "jit-config",
         llvm::cl::desc("Special configuration options for the JIT (can repeat)"),
-        llvm::cl::ZeroOrMore,
-        llvm::cl::value_desc("option")
-);
+        llvm::cl::ZeroOrMore, llvm::cl::value_desc("option"));
 
-int main(int argc, char** argv) {
-  // Parse the command line
-  cl::ParseCommandLineOptions(argc, argv, "JIT + Evaluator + Aggregator Tool\n");
-  bool fromSource=!SourceCode.empty();
+int main(int argc, char **argv) {
+    // Parse the command line
+    cl::ParseCommandLineOptions(argc, argv,
+                                "JIT + Evaluator + Aggregator Tool\n");
+    bool fromSource = !SourceCode.empty();
 
-  // Validate input: user must provide either file or stdin
-  if (InputFile.empty() == SourceCode.empty() && !ReadFromStdin) {
-    errs() << "Error: Must specify --file=<file> or --source or --stdin\n";
-    return 1;
-  }
+    // Validate input: user must provide either file or stdin
+    if (InputFile.empty() == SourceCode.empty() && !ReadFromStdin) {
+        errs() << "Error: Must specify --file=<file> or --source or --stdin\n";
+        return 1;
+    }
 
-  // Echo the inputs
-  outs() << "domain: " << domain << "\n";
-  if (!InputFile.empty())
-    outs() << "Input file: " << InputFile << "\n";
-  if (ReadFromStdin || fromSource)
-    outs() << "Reading source from stdin\n";
+    // Echo the inputs
+    outs() << "domain: " << domain << "\n";
+    if (!InputFile.empty())
+        outs() << "Input file: " << InputFile << "\n";
+    if (ReadFromStdin || fromSource)
+        outs() << "Reading source from stdin\n";
 
-  outs() << "Function names:\n";
-  for (const auto &fname : TransferFunctionNames)
-    outs() << "  " << fname << "\n";
+    outs() << "Function names:\n";
+    for (const auto &fname: TransferFunctionNames)
+        outs() << "  " << fname << "\n";
 
-  outs() << "JIT configuration options:\n";
-  for (const auto &cfg : JITConfig) {
-    outs() << "  " << cfg << "\n";
-  }
+    outs() << "JIT configuration options:\n";
+    for (const auto &cfg: JITConfig) {
+        outs() << "  " << cfg << "\n";
+    }
 
     if (ReadFromStdin) {
-        SourceCode = std::string(
-                std::istreambuf_iterator<char>(std::cin),
-                std::istreambuf_iterator<char>()
-        );
+        SourceCode = std::string(std::istreambuf_iterator<char>(std::cin),
+                                 std::istreambuf_iterator<char>());
     }
 
     // Here you would pass InputFile/stdin, FunctionNames, and ID
     // to your JIT / Evaluator / Aggregator
     // auto [ok, err] = compile(InputFile, JITConfig, SourceCode);
     // llvm::errs() << err;
-    std::unique_ptr<llvm::orc::LLJIT> jitModulePtr = createJITModule(InputFile, JITConfig, SourceCode);
+    std::unique_ptr<llvm::orc::LLJIT> jitModulePtr =
+            createJITModule(InputFile, JITConfig, SourceCode);
     using namespace Evaluation;
     size_t ConcreteDomainLength = 1;
-    EvaluationParameter evaluationParameter(DataCachePath, TransferFunctionNames, BaseTransferFunctionNames,
-        MaxOperationLength, domain,
-        ConcreteDomainLength, AbstractDomainLength, TransferFunctionArity, EnumerateBitWidth, SampleBitWidth, SampleAbstractAmount,
-        SampleConcreteAmount, RandomSeed);
+    EvaluationParameter evaluationParameter(
+            DataCachePath, AbstractValueCacheName, TransferFunctionNames, BaseTransferFunctionNames,
+            MaxOperationLength, domain, ConcreteDomainLength, AbstractDomainLength,
+            TransferFunctionArity, EnumerateBitWidth, SampleBitWidth,
+            SampleAbstractAmount, SampleConcreteAmount, RandomSeed);
     EvaluationBatch evaluationBatch(*jitModulePtr, evaluationParameter);
     EvaluationEngine evaluationEngine(evaluationParameter, evaluationBatch);
     auto result = evaluationEngine.evaluateBatch();
     printEvaluationResultOnAllBitWidth(result);
 
-  return 0;
+    return 0;
 }
