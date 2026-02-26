@@ -37,16 +37,20 @@ enum SamplePolicy {
 
 class SampleParameter {
     SamplePolicy samplePolicy;
+    size_t randomSeed;
     size_t numConcreteSamples;
     size_t numAbstractSamples;
 
+
 public:
-    SampleParameter(SamplePolicy samplePolicy,
+    explicit SampleParameter(SamplePolicy samplePolicy,
+                    size_t randomSeed = 0,
                     size_t numConcreteSamples = 0,
                     size_t numAbstractSamples = 0)
         : samplePolicy(samplePolicy),
+          randomSeed(randomSeed),
           numConcreteSamples(numConcreteSamples),
-          numAbstractSamples(numAbstractSamples) {}
+          numAbstractSamples(numAbstractSamples){}
 
       const SamplePolicy& getSamplePolicy() const {
         return samplePolicy;
@@ -58,6 +62,21 @@ public:
 
     const size_t& getNumAbstractSamples() const {
         return numAbstractSamples;
+    }
+
+    const size_t& getRandomSeed()const{
+        return randomSeed;
+    }
+
+    void saveToFile(std::ofstream& fout)const;
+
+    static SampleParameter  loadFromFile(std::ifstream& fin);
+
+    bool operator==(const SampleParameter& s)const{
+        return samplePolicy == s.samplePolicy &&
+               randomSeed == s.randomSeed &&
+               numConcreteSamples == s.numConcreteSamples &&
+               numAbstractSamples == s.numAbstractSamples;
     }
 };
 
@@ -84,6 +103,7 @@ class DataSampler {
 
     AbstractValue initAbstractValue(size_t bitWidth)const;
     bool nextAbstractValue(AbstractValue& abstractValue)const;
+    bool matchSampleParameter(const std::filesystem::path& path, const SampleParameter& sampleParameter)const;
     std::vector<ConcreteValue> sampleConcreteValues(AbstractValue& abstractValue, size_t bitWidth)const;
 public:
     DataSampler(const EvaluationParameter& evaluationParameter, const EvaluationBatch& evaluationBatch);

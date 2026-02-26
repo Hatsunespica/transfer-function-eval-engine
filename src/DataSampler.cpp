@@ -6,6 +6,24 @@
 
 namespace Evaluation {
 
+void SampleParameter::saveToFile(std::ofstream& fout)const{
+    size_t policy = samplePolicy;
+    fout.write((char*)&policy, sizeof(size_t));
+    fout.write((char*)&randomSeed, sizeof(size_t));
+    fout.write((char*)&numConcreteSamples, sizeof(size_t));
+    fout.write((char*)&numAbstractSamples, sizeof(size_t));
+}
+
+SampleParameter SampleParameter::loadFromFile(std::ifstream& fin){
+    size_t policy, randomSeed, numConcreteSamples, numAbstractSamples;
+    fin.read((char*)&policy, sizeof(size_t));
+    fin.read((char*)&randomSeed, sizeof(size_t));
+    fin.read((char*)&numConcreteSamples, sizeof(size_t));
+    fin.read((char*)&numAbstractSamples, sizeof(size_t));
+    return SampleParameter((SamplePolicy)policy, randomSeed, numConcreteSamples, numAbstractSamples);
+}
+
+
 DataSampler::DataSampler(const EvaluationParameter& evaluationParameter, const EvaluationBatch& evaluationBatch):
     dataCachePath(evaluationParameter.getDataCachePath()),
     maxOperationLength(evaluationParameter.getMaxOperationLength()),
@@ -18,8 +36,9 @@ DataSampler::DataSampler(const EvaluationParameter& evaluationParameter, const E
     using namespace std::filesystem;
     assert(exists(dataCachePath) && is_directory(dataCachePath));
 
+    size_t randomSeed = evaluationParameter.getRandomSeed();
     for (size_t bitWidth:evaluationParameter.getEnumerateBitWidth()) {
-        bitWidthToSampleParameter.emplace(bitWidth, SampleParameter(SamplePolicy::FULL_ENUMERATION));
+        bitWidthToSampleParameter.emplace(bitWidth, SampleParameter(SamplePolicy::FULL_ENUMERATION, randomSeed));
     }
 
     auto& sampleBitWidth=evaluationParameter.getSampleBitWidth();
@@ -29,10 +48,14 @@ DataSampler::DataSampler(const EvaluationParameter& evaluationParameter, const E
 
     for (size_t i=0;i<sampleBitWidth.size();++i) {
         if (sampleAbstractAmount[i] == 0) {
-            bitWidthToSampleParameter.emplace(sampleBitWidth[i], SampleParameter(SamplePolicy::SAMPLE_CONCRETE, sampleConcreteAmount[i]));
+            bitWidthToSampleParameter.emplace(sampleBitWidth[i],
+                                              SampleParameter(SamplePolicy::SAMPLE_CONCRETE,
+                                                              randomSeed,
+                                                              sampleConcreteAmount[i]));
         }else {
             bitWidthToSampleParameter.emplace(sampleBitWidth[i],
                 SampleParameter(SamplePolicy::SAMPLE_ABSTRACT_AND_CONCRETE,
+                    randomSeed,
                     sampleAbstractAmount[i],
                     sampleConcreteAmount[i]));
         }
@@ -54,8 +77,15 @@ std::filesystem::path DataSampler::getDataFilePath(size_t bitWidth) const {
     return getDataPath(bitWidth) / DATA_FILE_NAME;
 }
 
+bool DataSampler::matchSampleParameter(const std::filesystem::path& path, const SampleParameter& sampleParameter)const{
+    std::ifstream fin(path, std::ios::binary);
+    return sampleParameter == SampleParameter::loadFromFile(fin);
+}
+
 void DataSampler::saveData(const std::filesystem::path& path, std::vector<AbstractConcreteValuePair>& data, size_t bitWidth) const {
     std::ofstream fout(path, std::ios::binary);
+
+    (bitWidthToSampleParameter.find(bitWidth)->second).saveToFile(fout);
 
     size_t count=data.size();
     assert (count>0);
@@ -81,6 +111,9 @@ void DataSampler::saveData(const std::filesystem::path& path, std::vector<Abstra
 
 std::vector<AbstractConcreteValuePair> DataSampler::loadData(const std::filesystem::path& path, size_t bitWidth)const {
     std::ifstream fin(path, std::ios::binary);
+
+    auto sampleParameter = SampleParameter::loadFromFile(fin);
+    assert (sampleParameter == bitWidthToSampleParameter.find(bitWidth)->second);
 
     size_t count, concreteValueLength;
     fin.read((char*)&count, sizeof(size_t));
@@ -182,7 +215,9 @@ std::vector<AbstractConcreteValuePair> DataSampler::sampleData(size_t bitWidth)c
 std::vector<AbstractConcreteValuePair> DataSampler::getData(size_t bitWidth) {
     using namespace std::filesystem;
     path dataFilePath = getDataFilePath(bitWidth);
-    if (exists(dataFilePath) && is_regular_file(dataFilePath)) {
+
+    if (exists(dataFilePath) && is_regular_file(dataFilePath) &&
+        matchSampleParameter(dataFilePath, bitWidthToSampleParameter.find(bitWidth)->second)) {
         return loadData(dataFilePath, bitWidth);
     }else {
         auto result=sampleData(bitWidth);

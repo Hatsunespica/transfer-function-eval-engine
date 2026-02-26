@@ -19,6 +19,7 @@ class EvaluationParameter {
     const std::vector<size_t>& sampleBitWidth;
     const std::vector<size_t>& sampleAbstractAmount;
     const std::vector<size_t>& sampleConcreteAmount;
+    const size_t& randomSeed;
 
 public:
     EvaluationParameter(
@@ -33,7 +34,8 @@ public:
         const std::vector<size_t>& enumerateBitWidth,
         const std::vector<size_t>& sampleBitWidth,
         const std::vector<size_t>& sampleAbstractAmount,
-        const std::vector<size_t>& sampleConcreteAmount)
+        const std::vector<size_t>& sampleConcreteAmount,
+        const size_t& randomSeed)
         : dataCachePath(dataCachePath),
           transferFunctionNames(transferFunctionNames),
           baseTransferFunctionNames(baseTransferFunctionNames),
@@ -45,7 +47,8 @@ public:
           enumerateBitWidth(enumerateBitWidth),
           sampleBitWidth(sampleBitWidth),
           sampleAbstractAmount(sampleAbstractAmount),
-          sampleConcreteAmount(sampleConcreteAmount){}
+          sampleConcreteAmount(sampleConcreteAmount),
+          randomSeed(randomSeed){}
 
     // Getters
     const std::string& getDataCachePath() const {
@@ -94,6 +97,10 @@ public:
 
     const std::vector<size_t>& getSampleConcreteAmount() const {
         return sampleConcreteAmount;
+    }
+
+    const size_t& getRandomSeed() const {
+        return randomSeed;
     }
 };
 

@@ -110,6 +110,12 @@ cl::list<size_t> SampleConcreteAmount(
     cl::value_desc("int")
 );
 
+cl::opt<int> RandomSeed(
+        "random-seed",
+        cl::desc("random seed used in sampling"),
+        cl::init(0)
+);
+
 
 llvm::cl::list<std::string> JITConfig(
         "jit-config",
@@ -162,7 +168,7 @@ int main(int argc, char** argv) {
     EvaluationParameter evaluationParameter(DataCachePath, TransferFunctionNames, BaseTransferFunctionNames,
         MaxOperationLength, domain,
         ConcreteDomainLength, AbstractDomainLength, TransferFunctionArity, EnumerateBitWidth, SampleBitWidth, SampleAbstractAmount,
-        SampleConcreteAmount);
+        SampleConcreteAmount, RandomSeed);
     EvaluationBatch evaluationBatch(*jitModulePtr, evaluationParameter);
     EvaluationEngine evaluationEngine(evaluationParameter, evaluationBatch);
     auto result = evaluationEngine.evaluateBatch();
