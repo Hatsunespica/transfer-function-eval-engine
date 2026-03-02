@@ -267,7 +267,7 @@ namespace Evaluation {
                         const_cast<AbstractDomain>(data[0].getAbstractValue().data()));
             }
 
-            AbstractValue baseResult(arity), tmpResult(arity), bestResult;
+            AbstractValue baseResult(abstractDomainLength), tmpResult(abstractDomainLength), bestResult;
             bool hasBestValue;
             unsigned baseDistance;
             bool solved;
