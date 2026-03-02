@@ -219,6 +219,7 @@ namespace Evaluation {
         size_t numBaseTransferFunctions =
                 evaluationParameter.getBaseTransferFunctionNames().size();
         size_t arity = evaluationParameter.getTransferFunctionArity();
+        size_t abstractDomainLength = evaluationParameter.getAbstractDomainLength();
         EvaluationResultOnBitWidth finalResult;
         llvm::errs() << "Only enumerate all bit width with arity " << arity << "\n";
         ConcreteOperation concreteOperation = evaluationBatch.getConcreteFunction();
@@ -253,7 +254,7 @@ namespace Evaluation {
 
             std::vector<size_t> indices(arity, 0), limits(arity, data.size());
             std::vector<AbstractValue> transferResult(numTransferFunctions,
-                                                      AbstractValue(arity));
+                                                      AbstractValue(abstractDomainLength));
             std::vector<AbstractDomain> args;
 
             std::function<void(size_t, size_t)> argSetter =
