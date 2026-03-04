@@ -1,5 +1,10 @@
 # transfer-function-eval-engine
-This repo is used for evaluating C++ transfer functions generated from our xdsl-smt synthesizer. 
+This repo is used for evaluating C++ transfer functions generated from our xdsl-smt synthesizer.
+
+## To Build LLVM
+```
+cmake -GNinja -DLLVM_ENABLE_RTTI=ON -DLLVM_ENABLE_EH=ON -DBUILD_SHARED_LIBS=ON -DLLVM_BINUTILS_INCDIR=/home/spica/GitRepo/binutils/include/ -DCMAKE_BUILD_TYPE=Release -DLLVM_ENABLE_ASSERTIONS=ON -DLLVM_ENABLE_PROJECTS="llvm;clang;mlir" -DLLVM_ENABLE_RUNTIMES=openmp  -DLIBOMP_INSTALL_ALIASES=ON  ../llvm
+```
 
 ## To find JIT include path
 ```
