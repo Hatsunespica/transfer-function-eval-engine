@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <cinttypes>
 #include <random>
+#include <execution>
 
 namespace Evaluation {
     std::filesystem::path
@@ -298,11 +299,13 @@ namespace Evaluation {
                     solved = (baseResult == bestResult);
                     result.addBaseResult(solved, baseDistance);
 
+#pragma omp parallel for schedule(dynamic)
                     for (int i = 0; i < numTransferFunctions; ++i) {
                         transferFunctions[i](args.data(), transferResult[i].data());
                         meet(baseResult.data(), transferResult[i].data(),
                              transferResult[i].data());
                     }
+
                     for (int i = 0; i < numTransferFunctions; ++i) {
                         // update result for all transfer functions
                         int sound;
