@@ -28,15 +28,13 @@ llvm_map_components_to_libnames(LLVM_LIBS
     nativecodegen    # Needed if you JIT nontrivial code
 )
 
-find_package(OpenMP REQUIRED)
 
 if(NOT LLVM_ENABLE_RTTI)
   target_compile_options(eval-engine PRIVATE -fno-rtti)
 endif()
 
-if(OpenMP_CXX_FOUND)
-  target_compile_options(eval-engine PRIVATE -fopenmp)
-endif()
+target_compile_options(eval-engine PRIVATE -fopenmp)
+
 
 if(LLVM_BUILD_BINARY_DIR)
   file(TO_CMAKE_PATH "${LLVM_BUILD_BINARY_DIR}" _llvm_build_dir)

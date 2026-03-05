@@ -8,7 +8,7 @@ cmake -GNinja -DLLVM_ENABLE_RTTI=ON -DLLVM_ENABLE_EH=ON -DBUILD_SHARED_LIBS=ON -
 
 ## To find JIT include path
 ```
-clang -E -x c++ -V
+clang -E -x c++ -v
 ```
 should print out the search path for clang and use it to update 
 `include/HEADER_INCLUDE_PATH.h`
