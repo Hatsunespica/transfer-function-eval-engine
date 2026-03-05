@@ -66,6 +66,26 @@ namespace Evaluation {
         getHistoryConterexamples(size_t bitwidth, size_t arity);
     };
 
+    using ExternalDataSet = std::unordered_map<size_t, std::vector<std::vector<AbstractValue>>>;
+
+    class ExternalDataLoader {
+        const std::filesystem::path dataPath;
+        const std::string &domain;
+        const size_t &arity;
+
+        AbstractValue (*parseAbstractValue)(std::string_view str);
+
+        static AbstractValue parseKnownBits(std::string_view str);
+
+        std::vector<std::string_view> splitOneLine(std::string_view str);
+
+    public:
+        ExternalDataLoader(const EvaluationParameter &evaluationParameter);
+
+        ExternalDataSet loadFromExternalData();
+    };
+
+
 } // namespace Evaluation
 
 #endif // TRANSFER_FUNCTION_EVAL_ENGINE_DATASAMPLER_H

@@ -21,12 +21,17 @@ cl::opt<std::string> DataCachePath("data-cache-path",
                                    cl::value_desc("data cache path"));
 
 cl::opt<bool> WriteAbstractValue("write-abstract-value", cl::desc("Write abstract values to some file"),
-                            cl::init(false));
+                                 cl::init(false));
 
 cl::opt<std::string> AbstractValueCacheName("abstract-value-cache-name",
-                                   cl::desc("Specify cache name for abstract values"),
-                                   cl::init(""),
-                                   cl::value_desc("abstract value cache name"));
+                                            cl::desc("Specify cache name for abstract values"),
+                                            cl::init(""),
+                                            cl::value_desc("abstract value cache name"));
+
+cl::opt<std::string> ExternalDataPath("external-data-path",
+                                      cl::desc("Specify external data path"),
+                                      cl::init(""),
+                                      cl::value_desc("external data path"));
 
 cl::list<std::string>
         TransferFunctionNames("transfer-function",
@@ -98,7 +103,7 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    if(WriteAbstractValue && !AbstractValueCacheName.empty()){
+    if (WriteAbstractValue && !AbstractValueCacheName.empty()) {
         errs() << "Error: cannot write and read abstract values at the same time\n";
         return 1;
     }
@@ -135,16 +140,17 @@ int main(int argc, char **argv) {
     using namespace Evaluation;
     size_t ConcreteDomainLength = 1;
     EvaluationParameter evaluationParameter(
-            DataCachePath, WriteAbstractValue, AbstractValueCacheName, TransferFunctionNames, BaseTransferFunctionNames,
+            DataCachePath, ExternalDataPath, WriteAbstractValue, AbstractValueCacheName, TransferFunctionNames,
+            BaseTransferFunctionNames,
             MaxOperationLength, domain, ConcreteDomainLength, AbstractDomainLength,
             TransferFunctionArity, EnumerateBitWidth, SampleBitWidth,
             SampleAbstractAmount, SampleConcreteAmount, RandomSeed);
     EvaluationBatch evaluationBatch(*jitModulePtr, evaluationParameter);
     EvaluationEngine evaluationEngine(evaluationParameter, evaluationBatch);
-    if (WriteAbstractValue){
-        outs() << "Write cache to: "<<evaluationEngine.getAbstractValueCache().getCacheName()<<"\n";
+    if (WriteAbstractValue) {
+        outs() << "Write cache to: " << evaluationEngine.getAbstractValueCache().getCacheName() << "\n";
         evaluationEngine.computeAndSaveAbstractValues();
-    }else{
+    } else {
         auto result = evaluationEngine.evaluateBatch();
         printEvaluationResultOnAllBitWidth(result);
     }

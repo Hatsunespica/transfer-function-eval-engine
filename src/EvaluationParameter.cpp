@@ -22,32 +22,34 @@ namespace Evaluation {
         return SampleParameter((SamplePolicy) policy, randomSeed, numConcreteSamples,
                                numAbstractSamples);
     }
+
     void SampleParameter::dump() const {
-            llvm::errs() << "SampleParameter {\n"
-                         << "  samplePolicy: ";
+        llvm::errs() << "SampleParameter {\n"
+                     << "  samplePolicy: ";
 
-            switch (samplePolicy) {
-                case FULL_ENUMERATION:
-                    llvm::errs() << "FULL_ENUMERATION";
-                    break;
-                case SAMPLE_CONCRETE:
-                    llvm::errs() << "SAMPLE_CONCRETE";
-                    break;
-                case SAMPLE_ABSTRACT_AND_CONCRETE:
-                    llvm::errs() << "SAMPLE_ABSTRACT_AND_CONCRETE";
-                    break;
-            }
+        switch (samplePolicy) {
+            case FULL_ENUMERATION:
+                llvm::errs() << "FULL_ENUMERATION";
+                break;
+            case SAMPLE_CONCRETE:
+                llvm::errs() << "SAMPLE_CONCRETE";
+                break;
+            case SAMPLE_ABSTRACT_AND_CONCRETE:
+                llvm::errs() << "SAMPLE_ABSTRACT_AND_CONCRETE";
+                break;
+        }
 
-            llvm::errs() << "\n"
-                         << "  randomSeed: " << randomSeed << "\n"
-                         << "  numConcreteSamples: " << numConcreteSamples << "\n"
-                         << "  numAbstractSamples: " << numAbstractSamples << "\n"
-                         << "}\n";
+        llvm::errs() << "\n"
+                     << "  randomSeed: " << randomSeed << "\n"
+                     << "  numConcreteSamples: " << numConcreteSamples << "\n"
+                     << "  numAbstractSamples: " << numAbstractSamples << "\n"
+                     << "}\n";
     }
 
     EvaluationParameter::EvaluationParameter(
             const std::string &dataCachePath,
-            const bool& writeAbstractValue,
+            const std::string &externalDataPath,
+            const bool &writeAbstractValue,
             const std::string &abstractValueCacheName,
             const std::vector<std::string> &transferFunctionNames,
             const std::vector<std::string> &baseTransferFunctionNames,
@@ -58,7 +60,8 @@ namespace Evaluation {
             const std::vector<size_t> &sampleBitWidth,
             const std::vector<size_t> &sampleAbstractAmount,
             const std::vector<size_t> &sampleConcreteAmount, const size_t &randomSeed)
-            : dataCachePath(dataCachePath),writeAbstractValue(writeAbstractValue), abstractValueCacheName(abstractValueCacheName),
+            : dataCachePath(dataCachePath), externalDataPath(externalDataPath), writeAbstractValue(writeAbstractValue),
+              abstractValueCacheName(abstractValueCacheName),
               transferFunctionNames(transferFunctionNames),
               baseTransferFunctionNames(baseTransferFunctionNames),
               maxOperationLength(maxOperationLength), domain(domain),

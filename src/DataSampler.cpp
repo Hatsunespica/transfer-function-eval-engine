@@ -3,6 +3,7 @@
 #include <cassert>
 #include <fstream>
 #include <iostream>
+#include <charconv>
 
 namespace Evaluation {
 
@@ -193,5 +194,97 @@ namespace Evaluation {
             saveData(dataFilePath, result, bitWidth);
             return result;
         }
+    }
+
+    AbstractValue ExternalDataLoader::parseKnownBits(std::string_view str) {
+        size_t bitWidth = str.size();
+        AbstractValue result(2, APInt(bitWidth, 0));
+        for (size_t i = 0, loc = bitWidth - 1; i < bitWidth; ++i, --loc) {
+            if (str[i] == '0') {
+                result[0].setBit(loc);
+            } else if (str[i] == '1') {
+                result[1].setBit(loc);
+            } else if (str[i] != '?') {
+                assert(false && "Wrong data");
+            }
+        }
+        return result;
+    }
+
+
+    std::vector<std::string_view> ExternalDataLoader::splitOneLine(std::string_view str) {
+        std::vector<std::string_view> result;
+
+        size_t start = 0;
+        while (start <= str.size()) {
+            size_t end = str.find('\t', start);
+
+            if (end == std::string_view::npos) {
+                result.emplace_back(str.substr(start));
+                break;
+            }
+
+            result.emplace_back(str.substr(start, end - start));
+            start = end + 1;
+        }
+
+        return result;
+    }
+
+    ExternalDataSet ExternalDataLoader::loadFromExternalData() {
+        std::ifstream fin(dataPath);
+        std::string line;
+        ExternalDataSet dataSet;
+
+        // Skip header info
+        int skipHeader = 0;
+        const static std::string HEADER = "# ---";
+        while (std::getline(fin, line)) {
+            if (line == HEADER) {
+                ++skipHeader;
+            }
+            if (skipHeader == 2) {
+                break;
+            }
+        }
+
+        std::getline(fin, line);
+
+        std::vector<AbstractValue> abstractValues;
+        //parse each line
+        while (std::getline(fin, line)) {
+            auto splitResult = splitOneLine(line);
+            assert(arity + 2 == splitResult.size());
+            //parse the first bit width
+            size_t bitWidth;
+            auto result = std::from_chars(splitResult[0].data(), splitResult[0].data() + splitResult[0].size(),
+                                          bitWidth);
+            assert(result.ec != std::errc::invalid_argument);
+
+            //parse rest and add to result
+            if (dataSet.find(bitWidth) == dataSet.end()) {
+                dataSet.emplace(bitWidth, std::vector<std::vector<AbstractValue>>());
+            }
+            for (int i = 1; i < splitResult.size(); ++i) {
+                abstractValues.push_back(parseAbstractValue(splitResult[i]));
+            }
+            dataSet[bitWidth].push_back(abstractValues);
+            abstractValues.clear();
+        }
+        return dataSet;
+    }
+
+    ExternalDataLoader::ExternalDataLoader(const EvaluationParameter &evaluationParameter) :
+            dataPath(evaluationParameter.getExternalDataPath()),
+            domain(evaluationParameter.getDomain()),
+            arity(evaluationParameter.getTransferFunctionArity()) {
+        using namespace std::filesystem;
+        assert(exists(dataPath) && is_regular_file(dataPath));
+        if (domain == "KnownBits") {
+            parseAbstractValue = parseKnownBits;
+        } else {
+            assert(false && "Doesn't support for loading from the given domain: ");
+        }
+
     }
 } // namespace Evaluation

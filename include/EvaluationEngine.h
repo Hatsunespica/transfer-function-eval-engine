@@ -31,15 +31,17 @@ namespace Evaluation {
 
         void loadCache(size_t bitWidth);
 
-        void getAbstractValue(AbstractValue& abstractValue, bool& hasBestValue);
+        void getAbstractValue(AbstractValue &abstractValue, bool &hasBestValue);
 
-        void writeAbstractValue(const AbstractValue &abstractValue,const bool& hasBestValue);
+        void writeAbstractValue(const AbstractValue &abstractValue, const bool &hasBestValue);
 
-        std::string getCacheName()const{
+        std::string getCacheName() const {
             return cachePath.filename();
         }
-        bool isReadCache()const{return isRead;}
-        bool isWriteCache()const{return isWrite;}
+
+        bool isReadCache() const { return isRead; }
+
+        bool isWriteCache() const { return isWrite; }
     };
 
     class EvaluationEngine {
@@ -59,12 +61,16 @@ namespace Evaluation {
                 ConcreteOpConstraint opConstraint, bool trivialOpConstraint,
                 bool &hasBestValue);
 
+        void evaluateOnExternalData(const ExternalDataSet &dataSet, EvaluationResultOnBitWidth &finalResult);
+
     public:
         EvaluationEngine(const EvaluationParameter &evaluationParameter,
                          const EvaluationBatch &evaluationBatch);
 
         EvaluationResultOnBitWidth evaluateBatch();
-        const AbstractValueCache& getAbstractValueCache()const{return abstractValueCache;}
+
+        const AbstractValueCache &getAbstractValueCache() const { return abstractValueCache; }
+
         void computeAndSaveAbstractValues();
     };
 
