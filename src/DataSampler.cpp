@@ -205,6 +205,7 @@ namespace Evaluation {
             } else if (str[i] == '1') {
                 result[1].setBit(loc);
             } else if (str[i] != '?') {
+                llvm::errs()<<str<<"\n";
                 assert(false && "Wrong data");
             }
         }
@@ -264,12 +265,15 @@ namespace Evaluation {
             //parse rest and add to result
             if (dataSet.find(bitWidth) == dataSet.end()) {
                 dataSet.emplace(bitWidth, std::vector<std::vector<AbstractValue>>());
+                dataSet[bitWidth].reserve(5000);
             }
-            for (int i = 1; i < splitResult.size(); ++i) {
-                abstractValues.push_back(parseAbstractValue(splitResult[i]));
+            if(splitResult.back()!="(bottom)"){
+                for (int i = 1; i < splitResult.size(); ++i) {
+                    abstractValues.push_back(parseAbstractValue(splitResult[i]));
+                }
+                dataSet[bitWidth].push_back(abstractValues);
+                abstractValues.clear();
             }
-            dataSet[bitWidth].push_back(abstractValues);
-            abstractValues.clear();
         }
         return dataSet;
     }
