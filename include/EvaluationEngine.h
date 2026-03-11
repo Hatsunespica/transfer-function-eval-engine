@@ -52,6 +52,7 @@ namespace Evaluation {
 
         bool nextIndices(std::vector<size_t> &indices,
                          const std::vector<size_t> &limits,
+                         const size_t& step,
                          std::function<void(size_t, size_t)> argSetter);
 
         AbstractValue computeBestAbstractValue(

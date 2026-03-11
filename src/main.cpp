@@ -66,6 +66,11 @@ cl::list<size_t> EnumerateBitWidth("enumerate-bit-width",
                                    cl::OneOrMore, cl::CommaSeparated,
                                    cl::value_desc("int"));
 
+cl::list<size_t> EnumerateStep("enumerate-step",
+                                   cl::desc("Step used for enumeration"),
+                                   cl::OneOrMore, cl::CommaSeparated,
+                                   cl::value_desc("int"));
+
 cl::list<size_t> SampleBitWidth("sample-bit-width",
                                 cl::desc("Bit widths used for sampling"),
                                 cl::OneOrMore, cl::CommaSeparated,
@@ -143,7 +148,7 @@ int main(int argc, char **argv) {
             DataCachePath, ExternalDataPath, WriteAbstractValue, AbstractValueCacheName, TransferFunctionNames,
             BaseTransferFunctionNames,
             MaxOperationLength, domain, ConcreteDomainLength, AbstractDomainLength,
-            TransferFunctionArity, EnumerateBitWidth, SampleBitWidth,
+            TransferFunctionArity, EnumerateBitWidth, EnumerateStep, SampleBitWidth,
             SampleAbstractAmount, SampleConcreteAmount, RandomSeed);
     EvaluationBatch evaluationBatch(*jitModulePtr, evaluationParameter);
     EvaluationEngine evaluationEngine(evaluationParameter, evaluationBatch);

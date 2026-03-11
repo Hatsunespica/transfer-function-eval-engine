@@ -116,26 +116,17 @@ namespace Evaluation {
 
     bool EvaluationEngine::nextIndices(
             std::vector<size_t> &indices, const std::vector<size_t> &limits,
+            const size_t& step,
             std::function<void(size_t, size_t)> argSetter) {
-        indices.back()++;
-        bool carry = indices.back() == limits.back();
-        if (carry) {
-            int n = indices.size() - 1;
-            for (; carry && n >= 1; --n) {
-                indices[n] = 0;
-                argSetter(n, 0);
-                indices[n - 1]++;
-                carry = indices[n - 1] == limits[n - 1];
-            }
-            if (indices[0] == limits[0]) {
-                return false;
-            }
+        int n=indices.size()-1, carry = step, newValue;
+        while(n>=0 && carry > 0){
+            newValue = indices[n] + carry;
+            indices[n] = newValue % limits[n];
+            carry = newValue / limits[n];
             argSetter(n, indices[n]);
-            return true;
-        } else {
-            argSetter(indices.size() - 1, indices.back());
-            return true;
+            --n;
         }
+        return carry==0;
     }
 
     AbstractValue EvaluationEngine::computeBestAbstractValue(
@@ -168,7 +159,7 @@ namespace Evaluation {
             concreteOperation(args.data(), &concreteResult);
             fromConcreteFunction(&concreteResult, result.data());
             hasBestValue = true;
-            while (nextIndices(innerIndices, limits, argSetter)) {
+            while (nextIndices(innerIndices, limits, 1, argSetter)) {
                 concreteOperation(args.data(), &concreteResult);
                 fromConcreteFunction(&concreteResult, tmpResult.data());
                 join(result.data(), tmpResult.data(), result.data());
@@ -183,7 +174,7 @@ namespace Evaluation {
                 fromConcreteFunction(&concreteResult, result.data());
                 hasBestValue = true;
             }
-            while (nextIndices(innerIndices, limits, argSetter)) {
+            while (nextIndices(innerIndices, limits, 1, argSetter)) {
                 concreteOpConstraint(args.data(), &opConstraintResult);
                 if (opConstraintResult) {
                     concreteOperation(args.data(), &concreteResult);
@@ -248,6 +239,8 @@ namespace Evaluation {
             if (isReadCache) {
                 abstractValueCache.loadCache(bitWidth);
             }
+            const auto& sampleParameter = evaluationParameter.getSampleParameterByBitWidth(bitWidth);
+            size_t step = sampleParameter.getStep();
             EvaluationResult result(numTransferFunctions);
             llvm::errs() << "Evaluate current bitwidth " << bitWidth << "\n";
             auto data = dataSampler.getData(bitWidth);
@@ -325,7 +318,7 @@ namespace Evaluation {
 
             if (trivialAbstractOpConstraint) {
                 evalOnce();
-                while (nextIndices(indices, limits, argSetter)) {
+                while (nextIndices(indices, limits, step, argSetter)) {
                     evalOnce();
                 }
             } else {
@@ -335,7 +328,7 @@ namespace Evaluation {
                 if (abstractOpConstraintResult) {
                     evalOnce();
                 }
-                while (nextIndices(indices, limits, argSetter)) {
+                while (nextIndices(indices, limits, step, argSetter)) {
                     abstractOpConstraint(args.data(), &abstractOpConstraintResult);
                     if (abstractOpConstraintResult) {
                         evalOnce();
@@ -375,6 +368,8 @@ namespace Evaluation {
 
         for (size_t bitWidth: evaluationParameter.getEnumerateBitWidth()) {
             EvaluationResult result(numTransferFunctions);
+            const SampleParameter& sampleParameter = evaluationParameter.getSampleParameterByBitWidth(bitWidth);
+            size_t step = sampleParameter.getStep();
             llvm::errs() << "Evaluate current bitwidth " << bitWidth << "\n";
             auto data = dataSampler.getData(bitWidth);
             llvm::errs() << "Data pair size: " << data.size() << "\n";
@@ -408,7 +403,7 @@ namespace Evaluation {
 
             if (trivialAbstractOpConstraint) {
                 evalOnce();
-                while (nextIndices(indices, limits, argSetter)) {
+                while (nextIndices(indices, limits, step, argSetter)) {
                     evalOnce();
                 }
             } else {
@@ -418,7 +413,7 @@ namespace Evaluation {
                 if (abstractOpConstraintResult) {
                     evalOnce();
                 }
-                while (nextIndices(indices, limits, argSetter)) {
+                while (nextIndices(indices, limits, step, argSetter)) {
                     abstractOpConstraint(args.data(), &abstractOpConstraintResult);
                     if (abstractOpConstraintResult) {
                         evalOnce();

@@ -5,6 +5,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <cassert>
 
 namespace Evaluation {
 
@@ -19,14 +20,17 @@ namespace Evaluation {
         size_t randomSeed;
         size_t numConcreteSamples;
         size_t numAbstractSamples;
+        size_t step;
 
     public:
         explicit SampleParameter(SamplePolicy samplePolicy, size_t randomSeed = 0,
                                  size_t numConcreteSamples = 0,
-                                 size_t numAbstractSamples = 0)
+                                 size_t numAbstractSamples = 0,
+                                 size_t step = 1)
                 : samplePolicy(samplePolicy), randomSeed(randomSeed),
                   numConcreteSamples(numConcreteSamples),
-                  numAbstractSamples(numAbstractSamples) {}
+                  numAbstractSamples(numAbstractSamples),
+                  step(step){}
 
         const SamplePolicy &getSamplePolicy() const { return samplePolicy; }
 
@@ -35,6 +39,8 @@ namespace Evaluation {
         const size_t &getNumAbstractSamples() const { return numAbstractSamples; }
 
         const size_t &getRandomSeed() const { return randomSeed; }
+
+        const size_t &getStep() const{return step;}
 
         void saveToFile(std::fstream &fout) const;
 
@@ -46,7 +52,7 @@ namespace Evaluation {
         bool operator==(const SampleParameter &s) const {
             return samplePolicy == s.samplePolicy && randomSeed == s.randomSeed &&
                    numConcreteSamples == s.numConcreteSamples &&
-                   numAbstractSamples == s.numAbstractSamples;
+                   numAbstractSamples == s.numAbstractSamples && step ==s.step;
         }
 
         void dump() const;
@@ -65,6 +71,7 @@ namespace Evaluation {
         const size_t &abstractDomainLength;
         const size_t &transferFunctionArity;
         const std::vector<size_t> &enumerateBitWidth;
+        const std::vector<size_t> &enumerateStep;
         const std::vector<size_t> &sampleBitWidth;
         const std::vector<size_t> &sampleAbstractAmount;
         const std::vector<size_t> &sampleConcreteAmount;
@@ -84,6 +91,7 @@ namespace Evaluation {
                             const size_t &abstractDomainLength,
                             const size_t &transferFunctionArity,
                             const std::vector<size_t> &enumerateBitWidth,
+                            const std::vector<size_t> &enumerateStep,
                             const std::vector<size_t> &sampleBitWidth,
                             const std::vector<size_t> &sampleAbstractAmount,
                             const std::vector<size_t> &sampleConcreteAmount,
@@ -122,6 +130,10 @@ namespace Evaluation {
             return enumerateBitWidth;
         }
 
+        const std::vector<size_t> &getEnumerateStep() const {
+            return enumerateBitWidth;
+        }
+
         const std::vector<size_t> &getSampleBitWidth() const {
             return sampleBitWidth;
         }
@@ -139,6 +151,12 @@ namespace Evaluation {
         const std::unordered_map<size_t, SampleParameter> &
         getBitWidthToSampleParameter() const {
             return bitWidthToSampleParameter;
+        }
+
+        const SampleParameter& getSampleParameterByBitWidth(size_t bitWidth)const{
+            auto it =bitWidthToSampleParameter.find(bitWidth);
+            assert(it != bitWidthToSampleParameter.end());
+            return it->second;
         }
     };
 

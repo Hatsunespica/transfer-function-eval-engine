@@ -11,16 +11,18 @@ namespace Evaluation {
         fout.write((char *) &randomSeed, sizeof(size_t));
         fout.write((char *) &numConcreteSamples, sizeof(size_t));
         fout.write((char *) &numAbstractSamples, sizeof(size_t));
+        fout.write((char*) &step, sizeof(size_t));
     }
 
     SampleParameter SampleParameter::loadFromFile(std::fstream &fin) {
-        size_t policy, randomSeed, numConcreteSamples, numAbstractSamples;
+        size_t policy, randomSeed, numConcreteSamples, numAbstractSamples, step;
         fin.read((char *) &policy, sizeof(size_t));
         fin.read((char *) &randomSeed, sizeof(size_t));
         fin.read((char *) &numConcreteSamples, sizeof(size_t));
         fin.read((char *) &numAbstractSamples, sizeof(size_t));
+        fin.read((char*) &step, sizeof(size_t));
         return SampleParameter((SamplePolicy) policy, randomSeed, numConcreteSamples,
-                               numAbstractSamples);
+                               numAbstractSamples, step);
     }
 
     void SampleParameter::dump() const {
@@ -43,6 +45,7 @@ namespace Evaluation {
                      << "  randomSeed: " << randomSeed << "\n"
                      << "  numConcreteSamples: " << numConcreteSamples << "\n"
                      << "  numAbstractSamples: " << numAbstractSamples << "\n"
+                     << "  step: " << step<< "\n"
                      << "}\n";
     }
 
@@ -57,6 +60,7 @@ namespace Evaluation {
             const size_t &concreteDomainLength, const size_t &abstractDomainLength,
             const size_t &transferFunctionArity,
             const std::vector<size_t> &enumerateBitWidth,
+            const std::vector<size_t> &enumerateStep,
             const std::vector<size_t> &sampleBitWidth,
             const std::vector<size_t> &sampleAbstractAmount,
             const std::vector<size_t> &sampleConcreteAmount, const size_t &randomSeed)
@@ -68,13 +72,18 @@ namespace Evaluation {
               concreteDomainLength(concreteDomainLength),
               abstractDomainLength(abstractDomainLength),
               transferFunctionArity(transferFunctionArity),
-              enumerateBitWidth(enumerateBitWidth), sampleBitWidth(sampleBitWidth),
+              enumerateBitWidth(enumerateBitWidth),
+              enumerateStep(enumerateStep),
+              sampleBitWidth(sampleBitWidth),
               sampleAbstractAmount(sampleAbstractAmount),
               sampleConcreteAmount(sampleConcreteAmount), randomSeed(randomSeed) {
 
-        for (size_t bitWidth: enumerateBitWidth) {
+        assert(enumerateBitWidth.size() == enumerateStep.size());
+        for(size_t i=0;i<enumerateStep.size();++i){
+            size_t bitWidth = enumerateBitWidth[i];
+            size_t step = enumerateStep[i];
             bitWidthToSampleParameter.emplace(
-                    bitWidth, SampleParameter(SamplePolicy::FULL_ENUMERATION, randomSeed));
+                    bitWidth, SampleParameter(SamplePolicy::FULL_ENUMERATION, randomSeed, 0, 0, step));
         }
 
         assert(sampleBitWidth.size() == sampleAbstractAmount.size() &&
