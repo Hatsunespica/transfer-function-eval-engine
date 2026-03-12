@@ -11,7 +11,7 @@ namespace Evaluation {
         fout.write((char *) &randomSeed, sizeof(size_t));
         fout.write((char *) &numConcreteSamples, sizeof(size_t));
         fout.write((char *) &numAbstractSamples, sizeof(size_t));
-        fout.write((char*) &step, sizeof(size_t));
+        fout.write((char *) &step, sizeof(size_t));
     }
 
     SampleParameter SampleParameter::loadFromFile(std::fstream &fin) {
@@ -20,7 +20,7 @@ namespace Evaluation {
         fin.read((char *) &randomSeed, sizeof(size_t));
         fin.read((char *) &numConcreteSamples, sizeof(size_t));
         fin.read((char *) &numAbstractSamples, sizeof(size_t));
-        fin.read((char*) &step, sizeof(size_t));
+        fin.read((char *) &step, sizeof(size_t));
         return SampleParameter((SamplePolicy) policy, randomSeed, numConcreteSamples,
                                numAbstractSamples, step);
     }
@@ -45,7 +45,7 @@ namespace Evaluation {
                      << "  randomSeed: " << randomSeed << "\n"
                      << "  numConcreteSamples: " << numConcreteSamples << "\n"
                      << "  numAbstractSamples: " << numAbstractSamples << "\n"
-                     << "  step: " << step<< "\n"
+                     << "  step: " << step << "\n"
                      << "}\n";
     }
 
@@ -73,13 +73,12 @@ namespace Evaluation {
               abstractDomainLength(abstractDomainLength),
               transferFunctionArity(transferFunctionArity),
               enumerateBitWidth(enumerateBitWidth),
-              enumerateStep(enumerateStep),
               sampleBitWidth(sampleBitWidth),
               sampleAbstractAmount(sampleAbstractAmount),
               sampleConcreteAmount(sampleConcreteAmount), randomSeed(randomSeed) {
 
         assert(enumerateBitWidth.size() == enumerateStep.size());
-        for(size_t i=0;i<enumerateStep.size();++i){
+        for (size_t i = 0; i < enumerateStep.size(); ++i) {
             size_t bitWidth = enumerateBitWidth[i];
             size_t step = enumerateStep[i];
             bitWidthToSampleParameter.emplace(

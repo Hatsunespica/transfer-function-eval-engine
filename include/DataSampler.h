@@ -67,15 +67,19 @@ namespace Evaluation {
     };
 
     using ExternalDataSet = std::unordered_map<size_t, std::vector<std::vector<AbstractValue>>>;
+    using ParseAbstractValueFunction = AbstractValue (*)(std::string_view);
+    using ToStringFromAbstractDomainFunction = std::string (*)(const AbstractDomain &, size_t);
+
+    AbstractValue parseKnownBits(std::string_view str);
+
+    std::string toStringFromKnownBits(const AbstractDomain &abstractDomain, size_t abstractDomainLength);
 
     class ExternalDataLoader {
         const std::filesystem::path dataPath;
         const std::string &domain;
         const size_t &arity;
 
-        AbstractValue (*parseAbstractValue)(std::string_view str);
-
-        static AbstractValue parseKnownBits(std::string_view str);
+        ParseAbstractValueFunction parseAbstractValue;
 
         std::vector<std::string_view> splitOneLine(std::string_view str);
 
@@ -86,6 +90,37 @@ namespace Evaluation {
     };
 
 
+    class MaxPreciseLoader {
+        const std::string &maxPrecisePath;
+        const std::string &MLIRConcreteOpFile;
+        const std::string &domain;
+        ParseAbstractValueFunction parseAbstractValue;
+        ToStringFromAbstractDomainFunction toStringFromAbstractDomain;
+    public:
+        MaxPreciseLoader(const std::string &maxPrecisePath,
+                         const std::string &MLIRConcreteOpFile,
+                         const EvaluationParameter &evaluationParameter);
+
+        const std::string &getMaxPrecisePath() const {
+            return maxPrecisePath;
+        }
+
+        const std::string &getMLIRConcreteOpFile() const {
+            return MLIRConcreteOpFile;
+        }
+
+        const std::string &getDomain() const {
+            return domain;
+        }
+
+        ParseAbstractValueFunction getParseAbstractValueFunction() const {
+            return parseAbstractValue;
+        }
+
+        ToStringFromAbstractDomainFunction getToStringFromAbstractDomainFunction() const {
+            return toStringFromAbstractDomain;
+        }
+    };
 } // namespace Evaluation
 
 #endif // TRANSFER_FUNCTION_EVAL_ENGINE_DATASAMPLER_H

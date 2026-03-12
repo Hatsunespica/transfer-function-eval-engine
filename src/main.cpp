@@ -67,9 +67,9 @@ cl::list<size_t> EnumerateBitWidth("enumerate-bit-width",
                                    cl::value_desc("int"));
 
 cl::list<size_t> EnumerateStep("enumerate-step",
-                                   cl::desc("Step used for enumeration"),
-                                   cl::OneOrMore, cl::CommaSeparated,
-                                   cl::value_desc("int"));
+                               cl::desc("Step used for enumeration"),
+                               cl::OneOrMore, cl::CommaSeparated,
+                               cl::value_desc("int"));
 
 cl::list<size_t> SampleBitWidth("sample-bit-width",
                                 cl::desc("Bit widths used for sampling"),
@@ -95,6 +95,13 @@ llvm::cl::list<std::string> JITConfig(
         "jit-config",
         llvm::cl::desc("Special configuration options for the JIT (can repeat)"),
         llvm::cl::ZeroOrMore, llvm::cl::value_desc("option"));
+
+cl::opt<std::string> MaxPrecisePath("max-precise", cl::desc("Path to the max-precise binary"),
+                                    cl::init(""), cl::value_desc("path"));
+
+cl::opt<std::string> MLIRConcreteOpFile("mlir-concrete-op",
+                                        cl::desc("Path to the mlir concrete op file used by max-precise"),
+                                        cl::init(""), cl::value_desc("path"));
 
 int main(int argc, char **argv) {
     // Parse the command line
@@ -154,7 +161,12 @@ int main(int argc, char **argv) {
     EvaluationEngine evaluationEngine(evaluationParameter, evaluationBatch);
     if (WriteAbstractValue) {
         outs() << "Write cache to: " << evaluationEngine.getAbstractValueCache().getCacheName() << "\n";
-        evaluationEngine.computeAndSaveAbstractValues();
+        if (!MaxPrecisePath.empty()) {
+            MaxPreciseLoader maxPreciseLoader(MaxPrecisePath, MLIRConcreteOpFile, evaluationParameter);
+            evaluationEngine.computeAndSaveAbstractValuesByMaxPrecise(maxPreciseLoader);
+        } else {
+            evaluationEngine.computeAndSaveAbstractValues();
+        }
     } else {
         auto result = evaluationEngine.evaluateBatch();
         printEvaluationResultOnAllBitWidth(result);

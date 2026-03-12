@@ -116,17 +116,17 @@ namespace Evaluation {
 
     bool EvaluationEngine::nextIndices(
             std::vector<size_t> &indices, const std::vector<size_t> &limits,
-            const size_t& step,
+            const size_t &step,
             std::function<void(size_t, size_t)> argSetter) {
-        int n=indices.size()-1, carry = step, newValue;
-        while(n>=0 && carry > 0){
+        int n = indices.size() - 1, carry = step, newValue;
+        while (n >= 0 && carry > 0) {
             newValue = indices[n] + carry;
             indices[n] = newValue % limits[n];
             carry = newValue / limits[n];
             argSetter(n, indices[n]);
             --n;
         }
-        return carry==0;
+        return carry == 0;
     }
 
     AbstractValue EvaluationEngine::computeBestAbstractValue(
@@ -239,7 +239,7 @@ namespace Evaluation {
             if (isReadCache) {
                 abstractValueCache.loadCache(bitWidth);
             }
-            const auto& sampleParameter = evaluationParameter.getSampleParameterByBitWidth(bitWidth);
+            const auto &sampleParameter = evaluationParameter.getSampleParameterByBitWidth(bitWidth);
             size_t step = sampleParameter.getStep();
             EvaluationResult result(numTransferFunctions);
             llvm::errs() << "Evaluate current bitwidth " << bitWidth << "\n";
@@ -348,10 +348,7 @@ namespace Evaluation {
     }
 
     void EvaluationEngine::computeAndSaveAbstractValues() {
-        size_t numTransferFunctions =
-                evaluationParameter.getTransferFunctionNames().size();
         size_t arity = evaluationParameter.getTransferFunctionArity();
-        EvaluationResultOnBitWidth finalResult;
         llvm::errs() << "Only enumerate all bit width with arity " << arity << "\n";
         ConcreteOperation concreteOperation = evaluationBatch.getConcreteFunction();
         FromConcreteFunction fromConcrete = evaluationBatch.getFromConcrete();
@@ -364,11 +361,9 @@ namespace Evaluation {
                 evaluationBatch.isTrivialConcreteOpConstraint();
         bool trivialAbstractOpConstraint =
                 evaluationBatch.isTrivialAbstractOpConstraint();
-        llvm::APInt distanceResult, baseDistanceResult;
 
         for (size_t bitWidth: evaluationParameter.getEnumerateBitWidth()) {
-            EvaluationResult result(numTransferFunctions);
-            const SampleParameter& sampleParameter = evaluationParameter.getSampleParameterByBitWidth(bitWidth);
+            const SampleParameter &sampleParameter = evaluationParameter.getSampleParameterByBitWidth(bitWidth);
             size_t step = sampleParameter.getStep();
             llvm::errs() << "Evaluate current bitwidth " << bitWidth << "\n";
             auto data = dataSampler.getData(bitWidth);
@@ -420,6 +415,114 @@ namespace Evaluation {
                     }
                 }
             }
+        }
+    }
+
+    void EvaluationEngine::computeAndSaveAbstractValuesByMaxPrecise(const MaxPreciseLoader &maxPreciseLoader) {
+        size_t arity = evaluationParameter.getTransferFunctionArity();
+        const std::string &domain = maxPreciseLoader.getDomain();
+        llvm::errs() << "Only enumerate all bit width with arity " << arity << "\n";
+        AbstractOpConstraint abstractOpConstraint =
+                evaluationBatch.getAbstractOpConstraint();
+        bool trivialAbstractOpConstraint =
+                evaluationBatch.isTrivialAbstractOpConstraint();
+        ParseAbstractValueFunction parseAbstractValue = maxPreciseLoader.getParseAbstractValueFunction();
+        ToStringFromAbstractDomainFunction toStringFromAbstractDomain = maxPreciseLoader.getToStringFromAbstractDomainFunction();
+        size_t abstractDomainLength = evaluationParameter.getAbstractDomainLength();
+        std::string cmd =
+                maxPreciseLoader.getMaxPrecisePath() + " " + maxPreciseLoader.getMLIRConcreteOpFile() + " --domain=" +
+                domain, joined;
+        size_t cmdDefaultLength = cmd.size();
+        char buffer[4096];
+
+
+        for (size_t bitWidth: evaluationParameter.getEnumerateBitWidth()) {
+            const SampleParameter &sampleParameter = evaluationParameter.getSampleParameterByBitWidth(bitWidth);
+            size_t step = sampleParameter.getStep();
+            cmd += " --bitwidth=" + std::to_string(bitWidth) + " ";
+            size_t cmdLengthWithBitWidth = cmd.size();
+            llvm::errs() << "Evaluate current bitwidth " << bitWidth << "\n";
+            auto data = dataSampler.getData(bitWidth);
+            llvm::errs() << "Data pair size: " << data.size() << "\n";
+            assert(abstractValueCache.isWriteCache());
+            abstractValueCache.loadCache(bitWidth);
+
+            std::vector<size_t> indices(arity, 0), limits(arity, data.size());
+            std::vector<AbstractDomain> args;
+
+            std::function<void(size_t, size_t)> argSetter =
+                    [&args, &data](size_t index, size_t innerIndex) {
+                        args[index] = const_cast<AbstractDomain>(
+                                data[innerIndex].getAbstractValue().data());
+                    };
+            for (int i = 0; i < arity; ++i) {
+                args.push_back(
+                        const_cast<AbstractDomain>(data[0].getAbstractValue().data()));
+            }
+
+            AbstractValue bestResult;
+            bool hasBestValue;
+
+            auto evalOnce = [&]() {
+                joined = toStringFromAbstractDomain(args[0], abstractDomainLength);
+                for (size_t i = 1; i < args.size(); ++i) {
+                    joined += "," + toStringFromAbstractDomain(args[i], abstractDomainLength);
+                }
+
+                cmd += " --args='" + joined + "' ";
+
+                std::string output;
+
+                FILE *pipe = popen(cmd.c_str(), "r");
+                if (!pipe) {
+                    assert(false && "popen() failed");
+                }
+
+
+                while (fgets(buffer, sizeof(buffer), pipe)) {
+                    output += buffer;
+                }
+
+                int status = pclose(pipe);
+
+                int exit_code = WIFEXITED(status) ? WEXITSTATUS(status) : -1;
+
+                if (exit_code != 0) {
+                    assert(false && "max-precise executed failed");
+                }
+
+                hasBestValue = (output == "(bottom)");
+
+                if (hasBestValue) {
+                    bestResult = parseAbstractValue(output);
+                }
+
+                abstractValueCache.writeAbstractValue(bestResult, hasBestValue);
+                cmd.erase(cmdLengthWithBitWidth);
+            };
+
+            int abstractOpConstraintResult = 1;
+
+            if (trivialAbstractOpConstraint) {
+                evalOnce();
+                while (nextIndices(indices, limits, step, argSetter)) {
+                    evalOnce();
+                }
+            } else {
+                // In the else branch, we need to check abstractOpConstraint for every
+                // inputs
+                abstractOpConstraint(args.data(), &abstractOpConstraintResult);
+                if (abstractOpConstraintResult) {
+                    evalOnce();
+                }
+                while (nextIndices(indices, limits, step, argSetter)) {
+                    abstractOpConstraint(args.data(), &abstractOpConstraintResult);
+                    if (abstractOpConstraintResult) {
+                        evalOnce();
+                    }
+                }
+            }
+            cmd.erase(cmdDefaultLength);
         }
     }
 

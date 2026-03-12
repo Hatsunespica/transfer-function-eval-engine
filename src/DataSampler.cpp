@@ -196,7 +196,7 @@ namespace Evaluation {
         }
     }
 
-    AbstractValue ExternalDataLoader::parseKnownBits(std::string_view str) {
+    AbstractValue parseKnownBits(std::string_view str) {
         size_t bitWidth = str.size();
         AbstractValue result(2, APInt(bitWidth, 0));
         for (size_t i = 0, loc = bitWidth - 1; i < bitWidth; ++i, --loc) {
@@ -205,10 +205,29 @@ namespace Evaluation {
             } else if (str[i] == '1') {
                 result[1].setBit(loc);
             } else if (str[i] != '?') {
-                llvm::errs()<<str<<"\n";
+                llvm::errs() << str << "\n";
                 assert(false && "Wrong data");
             }
         }
+        return result;
+    }
+
+    std::string toStringFromKnownBits(const AbstractDomain &abstractDomain, size_t abstractDomainLength) {
+        assert(abstractDomainLength == 2 && "Error to string from known bits");
+        std::string result;
+        size_t bitWidth = abstractDomain[0].getBitWidth();
+        for (size_t i = 0; i < bitWidth; ++i) {
+            if (abstractDomain[0][i] && abstractDomain[1][i]) {
+                assert(false && "Wrong data");
+            } else if (!abstractDomain[0][i] && !abstractDomain[1][i]) {
+                result.push_back('?');
+            } else if (abstractDomain[0][i]) {
+                result.push_back('0');
+            } else {
+                result.push_back('1');
+            }
+        }
+        std::reverse(result.begin(), result.end());
         return result;
     }
 
@@ -267,7 +286,7 @@ namespace Evaluation {
                 dataSet.emplace(bitWidth, std::vector<std::vector<AbstractValue>>());
                 dataSet[bitWidth].reserve(5000);
             }
-            if(splitResult.back()!="(bottom)"){
+            if (splitResult.back() != "(bottom)") {
                 for (int i = 1; i < splitResult.size(); ++i) {
                     abstractValues.push_back(parseAbstractValue(splitResult[i]));
                 }
@@ -290,5 +309,23 @@ namespace Evaluation {
             assert(false && "Doesn't support for loading from the given domain: ");
         }
 
+    }
+
+
+    MaxPreciseLoader::MaxPreciseLoader(const std::string &maxPrecisePath,
+                                       const std::string &MLIRConcreteOpFile,
+                                       const EvaluationParameter &evaluationParameter) : maxPrecisePath(maxPrecisePath),
+                                                                                         MLIRConcreteOpFile(
+                                                                                                 MLIRConcreteOpFile),
+                                                                                         domain(evaluationParameter.getDomain()) {
+        using namespace std;
+        assert(filesystem::exists(maxPrecisePath) && filesystem::is_regular_file(maxPrecisePath));
+        assert(filesystem::exists(MLIRConcreteOpFile) && filesystem::is_regular_file(MLIRConcreteOpFile));
+        if (domain == "KnownBits") {
+            parseAbstractValue = parseKnownBits;
+            toStringFromAbstractDomain = toStringFromKnownBits;
+        } else {
+            assert(false && "Doesn't support for loading from the given domain: ");
+        }
     }
 } // namespace Evaluation

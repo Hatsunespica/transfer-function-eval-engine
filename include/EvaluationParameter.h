@@ -30,7 +30,7 @@ namespace Evaluation {
                 : samplePolicy(samplePolicy), randomSeed(randomSeed),
                   numConcreteSamples(numConcreteSamples),
                   numAbstractSamples(numAbstractSamples),
-                  step(step){}
+                  step(step) {}
 
         const SamplePolicy &getSamplePolicy() const { return samplePolicy; }
 
@@ -40,7 +40,7 @@ namespace Evaluation {
 
         const size_t &getRandomSeed() const { return randomSeed; }
 
-        const size_t &getStep() const{return step;}
+        const size_t &getStep() const { return step; }
 
         void saveToFile(std::fstream &fout) const;
 
@@ -52,7 +52,7 @@ namespace Evaluation {
         bool operator==(const SampleParameter &s) const {
             return samplePolicy == s.samplePolicy && randomSeed == s.randomSeed &&
                    numConcreteSamples == s.numConcreteSamples &&
-                   numAbstractSamples == s.numAbstractSamples && step ==s.step;
+                   numAbstractSamples == s.numAbstractSamples && step == s.step;
         }
 
         void dump() const;
@@ -71,7 +71,6 @@ namespace Evaluation {
         const size_t &abstractDomainLength;
         const size_t &transferFunctionArity;
         const std::vector<size_t> &enumerateBitWidth;
-        const std::vector<size_t> &enumerateStep;
         const std::vector<size_t> &sampleBitWidth;
         const std::vector<size_t> &sampleAbstractAmount;
         const std::vector<size_t> &sampleConcreteAmount;
@@ -153,8 +152,8 @@ namespace Evaluation {
             return bitWidthToSampleParameter;
         }
 
-        const SampleParameter& getSampleParameterByBitWidth(size_t bitWidth)const{
-            auto it =bitWidthToSampleParameter.find(bitWidth);
+        const SampleParameter &getSampleParameterByBitWidth(size_t bitWidth) const {
+            auto it = bitWidthToSampleParameter.find(bitWidth);
             assert(it != bitWidthToSampleParameter.end());
             return it->second;
         }
